@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\InternetId.OpenIddict\InternetId.OpenIddict.csproj" />
+    <ProjectReference Include="..\InternetId.Users\InternetId.Users.csproj" />
+  </ItemGroup>
+
+</Project>
