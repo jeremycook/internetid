@@ -1,8 +1,10 @@
 using InternetId.OpenIddict.Data;
+using InternetId.Server.Areas.Identity;
 using InternetId.Users.Data;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -10,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using PwnedPasswords.Client;
 using PwnedPasswords.Validator;
+using System;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace InternetId.Server
@@ -55,22 +58,33 @@ namespace InternetId.Server
                 options.ClaimsIdentity.UserIdClaimType = Claims.Subject;
                 options.ClaimsIdentity.RoleClaimType = Claims.Role;
 
-                // Note: to require account confirmation before login,
-                // register an email sender service (IEmailSender) and
-                // set options.SignIn.RequireConfirmedAccount to true.
-                //
-                // For more information, visit https://aka.ms/aspaccountconf.
-                options.SignIn.RequireConfirmedAccount = false;
+                // Keep it simple.
+                options.SignIn.RequireConfirmedAccount = true;
 
-                options.Password.RequireDigit = false;
+                // The username and email address are two different values.
+                // The username may only contain lowercase letters and numbers.
+                options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyz0123456789";
+                // Require unique email to reduce the likelihood of confusing users and to keep the UI simpler.
+                options.User.RequireUniqueEmail = true;
+
+                // Following NIST Special Publication 800-63B
+                // Using https://github.com/andrewlock/PwnedPasswords to check for breached passwords.
+                // NIST Special Publication 800-63B: "[require] user-chosen memorized secrets to be a minimum of 8 characters long"
                 options.Password.RequiredLength = 8;
                 options.Password.RequiredUniqueChars = 4;
+                options.Password.RequireDigit = false;
                 options.Password.RequireLowercase = false;
                 options.Password.RequireNonAlphanumeric = false;
                 options.Password.RequireUppercase = false;
+                // NIST Special Publication 800-63B: "Allow at least 10 entry attempts for authenticators requiring the entry of the authenticator output by the user"
+                options.Lockout.MaxFailedAccessAttempts = 10;
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(10);
+                options.Lockout.AllowedForNewUsers = true;
             });
             services.Configure<PwnedPasswordsClientOptions>(Configuration.GetSection("PwnedPasswordsClient"));
             services.Configure<PwnedPasswordValidatorOptions>(Configuration.GetSection("PwnedPasswordValidator"));
+            services.Configure<SmtpEmailSenderOptions>(Configuration.GetSection("SmtpEmailSender"));
+            services.AddScoped<IEmailSender, SmtpEmailSender>();
 
             services.AddOpenIddict()
 

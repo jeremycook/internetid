@@ -1,0 +1,39 @@
+﻿body {
+    background: #0094ff;
+}
+
+.site-bg {
+    filter: blur(100px);
+    background: #0094ff no-repeat center center;
+    background-image: linear-gradient(rgb(0 148 255 / 0.50), rgb(0 148 255 / 0.50)), url('bg.jpg');
+    background-size: cover;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: -100000;
+}
+
+.card {
+    border-color: rgb(255 255 255 / 0.50);
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
+}
+
+.card-body > :last-child {
+    margin-bottom: 0;
+}
+
+input:required, select:required, textarea:required,
+input[data-val-required], select[data-val-required], textarea[data-val-required],
+.required {
+    background-image: url('required.svg');
+    background-repeat: no-repeat;
+    background-position: left top;
+}
+
+input[readonly] {
+    background: none;
+    border-color: transparent;
+    box-shadow: none;
+}

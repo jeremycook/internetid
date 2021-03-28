@@ -7,5 +7,14 @@ namespace InternetId.Users.Data
     {
         public UsersDbContext(DbContextOptions<UsersDbContext> options)
             : base(options) { }
+
+        protected override void OnModelCreating(ModelBuilder builder)
+        {
+            base.OnModelCreating(builder);
+            foreach (var entityType in builder.Model.GetEntityTypes())
+            {
+                entityType.SetTableName(entityType.GetTableName().Replace("AspNet", ""));
+            }
+        }
     }
 }
