@@ -21,6 +21,7 @@ namespace InternetId.Server.Areas.Identity.Pages.Account
         }
 
         public string Email { get; set; }
+        public string ReturnUrl { get; set; }
 
         public async Task<IActionResult> OnGetAsync(string email, string returnUrl = null)
         {
@@ -36,6 +37,18 @@ namespace InternetId.Server.Areas.Identity.Pages.Account
             }
 
             Email = email;
+
+            if (returnUrl != null)
+            {
+                if (Url.IsLocalUrl(returnUrl))
+                {
+                    ReturnUrl = returnUrl;
+                }
+                else
+                {
+                    ReturnUrl = Url.Page("Login", new { returnUrl = returnUrl });
+                }
+            }
 
             return Page();
         }

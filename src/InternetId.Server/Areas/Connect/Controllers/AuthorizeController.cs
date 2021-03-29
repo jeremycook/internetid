@@ -1,9 +1,11 @@
 /*
  * Licensed under the Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
+ * See https://github.com/openiddict/openiddict-core for more information concerning
+ * the license and the contributors participating to this project.
  */
 
+using InternetId.Server.Areas.Connect.ViewModels;
 using InternetId.Server.Helpers;
-using InternetId.Server.ViewModels.Authorization;
 using InternetId.Users.Data;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
@@ -11,6 +13,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
@@ -24,26 +27,29 @@ using static OpenIddict.Abstractions.OpenIddictConstants;
 namespace InternetId.Server.Areas.Connect.Controllers
 {
     [Area("Connect")]
-    public class AuthorizationController : Controller
+    public class AuthorizeController : Controller
     {
         private readonly IOpenIddictApplicationManager _applicationManager;
         private readonly IOpenIddictAuthorizationManager _authorizationManager;
         private readonly IOpenIddictScopeManager _scopeManager;
         private readonly SignInManager<User> _signInManager;
         private readonly UserManager<User> _userManager;
+        private readonly ILogger<AuthorizeController> _logger;
 
-        public AuthorizationController(
+        public AuthorizeController(
             IOpenIddictApplicationManager applicationManager,
             IOpenIddictAuthorizationManager authorizationManager,
             IOpenIddictScopeManager scopeManager,
             SignInManager<User> signInManager,
-            UserManager<User> userManager)
+            UserManager<User> userManager,
+            ILogger<AuthorizeController> logger)
         {
             _applicationManager = applicationManager;
             _authorizationManager = authorizationManager;
             _scopeManager = scopeManager;
             _signInManager = signInManager;
             _userManager = userManager;
+            _logger = logger;
         }
 
         [HttpGet("~/connect/authorize")]
@@ -129,8 +135,12 @@ namespace InternetId.Server.Areas.Connect.Controllers
             }
 
             // Retrieve the profile of the logged in user.
-            var user = await _userManager.GetUserAsync(result.Principal) ??
-                throw new InvalidOperationException("The user details cannot be retrieved.");
+            var user = await _userManager.GetUserAsync(result.Principal);
+            if (user == null)
+            {
+                _logger.LogWarning("The user details cannot be retrieved.");
+                return LocalRedirect("~/");
+            }
 
             // Retrieve the application details from the database.
             var application = await _applicationManager.FindByClientIdAsync(request.ClientId) ??
@@ -139,10 +149,10 @@ namespace InternetId.Server.Areas.Connect.Controllers
             // Retrieve the permanent authorizations associated with the user and the calling client application.
             var authorizations = await _authorizationManager.FindAsync(
                 subject: await _userManager.GetUserIdAsync(user),
-                client : await _applicationManager.GetIdAsync(application),
-                status : Statuses.Valid,
-                type   : AuthorizationTypes.Permanent,
-                scopes : request.GetScopes()).ToListAsync();
+                client: await _applicationManager.GetIdAsync(application),
+                status: Statuses.Valid,
+                type: AuthorizationTypes.Permanent,
+                scopes: request.GetScopes()).ToListAsync();
 
             switch (await _applicationManager.GetConsentTypeAsync(application))
             {
@@ -178,10 +188,10 @@ namespace InternetId.Server.Areas.Connect.Controllers
                     {
                         authorization = await _authorizationManager.CreateAsync(
                             principal: principal,
-                            subject  : await _userManager.GetUserIdAsync(user),
-                            client   : await _applicationManager.GetIdAsync(application),
-                            type     : AuthorizationTypes.Permanent,
-                            scopes   : principal.GetScopes());
+                            subject: await _userManager.GetUserIdAsync(user),
+                            client: await _applicationManager.GetIdAsync(application),
+                            type: AuthorizationTypes.Permanent,
+                            scopes: principal.GetScopes());
                     }
 
                     principal.SetAuthorizationId(await _authorizationManager.GetIdAsync(authorization));
@@ -195,7 +205,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
 
                 // At this point, no authorization was found in the database and an error must be returned
                 // if the client application specified prompt=none in the authorization request.
-                case ConsentTypes.Explicit   when request.HasPrompt(Prompts.None):
+                case ConsentTypes.Explicit when request.HasPrompt(Prompts.None):
                 case ConsentTypes.Systematic when request.HasPrompt(Prompts.None):
                     return Forbid(
                         authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
@@ -207,16 +217,18 @@ namespace InternetId.Server.Areas.Connect.Controllers
                         }));
 
                 // In every other case, render the consent form.
-                default: return View(new AuthorizeViewModel
-                {
-                    ApplicationName = await _applicationManager.GetDisplayNameAsync(application),
-                    Scope = request.Scope
-                });
+                default:
+                    return View(new AuthorizeViewModel
+                    {
+                        ApplicationName = await _applicationManager.GetDisplayNameAsync(application),
+                        Scope = request.Scope
+                    });
             }
         }
 
         [Authorize, FormValueRequired("submit.Accept")]
-        [HttpPost("~/connect/authorize"), ValidateAntiForgeryToken]
+        [HttpPost("~/connect/authorize")]
+        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> Accept()
         {
             var request = HttpContext.GetOpenIddictServerRequest() ??
@@ -233,10 +245,10 @@ namespace InternetId.Server.Areas.Connect.Controllers
             // Retrieve the permanent authorizations associated with the user and the calling client application.
             var authorizations = await _authorizationManager.FindAsync(
                 subject: await _userManager.GetUserIdAsync(user),
-                client : await _applicationManager.GetIdAsync(application),
-                status : Statuses.Valid,
-                type   : AuthorizationTypes.Permanent,
-                scopes : request.GetScopes()).ToListAsync();
+                client: await _applicationManager.GetIdAsync(application),
+                status: Statuses.Valid,
+                type: AuthorizationTypes.Permanent,
+                scopes: request.GetScopes()).ToListAsync();
 
             // Note: the same check is already made in the other action but is repeated
             // here to ensure a malicious user can't abuse this POST-only endpoint and
@@ -268,10 +280,10 @@ namespace InternetId.Server.Areas.Connect.Controllers
             {
                 authorization = await _authorizationManager.CreateAsync(
                     principal: principal,
-                    subject  : await _userManager.GetUserIdAsync(user),
-                    client   : await _applicationManager.GetIdAsync(application),
-                    type     : AuthorizationTypes.Permanent,
-                    scopes   : principal.GetScopes());
+                    subject: await _userManager.GetUserIdAsync(user),
+                    client: await _applicationManager.GetIdAsync(application),
+                    type: AuthorizationTypes.Permanent,
+                    scopes: principal.GetScopes());
             }
 
             principal.SetAuthorizationId(await _authorizationManager.GetIdAsync(authorization));
@@ -286,7 +298,8 @@ namespace InternetId.Server.Areas.Connect.Controllers
         }
 
         [Authorize, FormValueRequired("submit.Deny")]
-        [HttpPost("~/connect/authorize"), ValidateAntiForgeryToken]
+        [HttpPost("~/connect/authorize")]
+        [IgnoreAntiforgeryToken]
         // Notify OpenIddict that the authorization grant has been denied by the resource owner
         // to redirect the user agent to the client application using the appropriate response_mode.
         public IActionResult Deny() => Forbid(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);

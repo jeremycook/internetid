@@ -6,11 +6,9 @@
 
         <h1>Authorization</h1>
 
-        <p class="lead text-left">Do you want to grant <strong>@Model.ApplicationName</strong> access to your InternetID?</p>
+        <p class="lead text-left">Do you want to log into <strong>@Model.ApplicationName</strong> with your InternetID?</p>
 
-        <p>Scopes requested: @Model.Scope</p>
-
-        <form asp-controller="Authorization" asp-action="Authorize" method="post">
+        <form class="mb-3" asp-controller="Authorization" asp-action="Authorize" method="post">
             @* Flow the request parameters so they can be received by the Accept/Reject actions: *@
             @foreach (var parameter in Context.Request.HasFormContentType ? (IEnumerable<KeyValuePair<string, StringValues>>)Context.Request.Form : Context.Request.Query)
             {
@@ -20,6 +18,10 @@
             <input class="btn btn-lg btn-success" name="submit.Accept" type="submit" value="Yes" />
             <input class="btn btn-lg btn-danger" name="submit.Deny" type="submit" value="No" />
         </form>
+
+        <hr />
+
+        <p>The following scopes requested were requested by @Model.ApplicationName: @Model.Scope</p>
 
     </div>
 </div>

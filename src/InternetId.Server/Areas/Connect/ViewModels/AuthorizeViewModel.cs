@@ -1,6 +1,6 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace InternetId.Server.ViewModels.Authorization
+namespace InternetId.Server.Areas.Connect.ViewModels
 {
     public class AuthorizeViewModel
     {

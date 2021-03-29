@@ -34,7 +34,6 @@ namespace InternetId.Server.Areas.Identity.Pages.Account
                 return NotFound($"Unable to load user with ID '{userId}'.");
             }
 
-            //code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code));
             var result = await _userManager.ConfirmEmailAsync(user, code);
 
             if (!result.Succeeded)
@@ -56,6 +55,10 @@ namespace InternetId.Server.Areas.Identity.Pages.Account
                 {
                     ReturnUrl = Url.Page("Login", new { returnUrl = returnUrl });
                 }
+            }
+            else
+            {
+                ReturnUrl = Url.Page("Login");
             }
 
             return Page();

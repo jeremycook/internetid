@@ -4,13 +4,19 @@
     ViewData["Title"] = "Register confirmation";
 }
 
-<div class="card">
+<div class="card text-center">
     <div class="card-body">
 
         <h1>@ViewData["Title"]</h1>
         <p>
             Please check your email to confirm your account.
         </p>
+        @if (Model.ReturnUrl != null)
+        {
+            <p>
+                Once you have confirmed your account <a href="@Model.ReturnUrl">click here to continue</a>.
+            </p>
+        }
 
     </div>
 </div>
