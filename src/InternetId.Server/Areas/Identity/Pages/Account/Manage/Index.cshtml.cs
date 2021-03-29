@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Threading.Tasks;
-using InternetId.Users.Data;
+﻿using InternetId.Users.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Security.Claims;
+using System.Threading.Tasks;
+using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace InternetId.Server.Areas.Identity.Pages.Account.Manage
 {
@@ -33,16 +33,27 @@ namespace InternetId.Server.Areas.Identity.Pages.Account.Manage
 
         public class InputModel
         {
+            [Required]
+            [Display(Name = "Display name")]
+            public string Name { get; set; }
+
+            [Phone]
+            [Display(Name = "Phone number")]
+            public string PhoneNumber { get; set; }
         }
 
         private async Task LoadAsync(User user)
         {
             var userName = await _userManager.GetUserNameAsync(user);
+            var phoneNumber = await _userManager.GetPhoneNumberAsync(user);
+            var userClaims = await _userManager.GetClaimsAsync(user);
 
             Username = userName;
 
             Input = new InputModel
             {
+                Name = userClaims.FirstOrDefault(o => o.Type == Claims.Name)?.Value,
+                PhoneNumber = phoneNumber,
             };
         }
 
@@ -70,6 +81,32 @@ namespace InternetId.Server.Areas.Identity.Pages.Account.Manage
             {
                 await LoadAsync(user);
                 return Page();
+            }
+
+            var phoneNumber = await _userManager.GetPhoneNumberAsync(user);
+            if (Input.PhoneNumber != phoneNumber)
+            {
+                var setPhoneResult = await _userManager.SetPhoneNumberAsync(user, Input.PhoneNumber);
+                if (!setPhoneResult.Succeeded)
+                {
+                    StatusMessage = "Unexpected error when trying to set phone number.";
+                    return RedirectToPage();
+                }
+            }
+
+            var userClaims = await _userManager.GetClaimsAsync(user);
+
+            var nameClaim = userClaims.FirstOrDefault(o => o.Type == Claims.Name);
+            if (Input.Name != nameClaim?.Value)
+            {
+                var result = nameClaim != null ?
+                    await _userManager.ReplaceClaimAsync(user, nameClaim, new Claim(Claims.Name, Input.Name)) :
+                    await _userManager.AddClaimAsync(user, new Claim(Claims.Name, Input.Name));
+                if (!result.Succeeded)
+                {
+                    StatusMessage = "Unexpected error when trying to set display name.";
+                    return RedirectToPage();
+                }
             }
 
             await _signInManager.RefreshSignInAsync(user);
