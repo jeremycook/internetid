@@ -19,9 +19,7 @@ namespace InternetId.Server.Areas.Identity.Pages.Account
             _userManager = userManager;
         }
 
-        public string ReturnUrl { get; private set; }
-
-        public async Task<IActionResult> OnGetAsync(string userId, string code, string returnUrl = null)
+        public async Task<IActionResult> OnGetAsync(string userId, string code)
         {
             if (userId == null || code == null)
             {
@@ -43,22 +41,6 @@ namespace InternetId.Server.Areas.Identity.Pages.Account
                 {
                     ModelState.AddModelError("", item.Description);
                 }
-            }
-
-            if (returnUrl != null)
-            {
-                if (Url.IsLocalUrl(returnUrl))
-                {
-                    ReturnUrl = returnUrl;
-                }
-                else
-                {
-                    ReturnUrl = Url.Page("Login", new { returnUrl = returnUrl });
-                }
-            }
-            else
-            {
-                ReturnUrl = Url.Page("Login");
             }
 
             return Page();

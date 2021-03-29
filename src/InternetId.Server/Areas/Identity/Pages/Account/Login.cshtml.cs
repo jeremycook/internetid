@@ -99,7 +99,7 @@ namespace InternetId.Server.Areas.Identity.Pages.Account
 
                     if (!user.EmailConfirmed)
                     {
-                        return RedirectToPage("./ResendEmailConfirmation", new { usernameOrEmail = Input.UsernameOrEmail, ReturnUrl = returnUrl });
+                        return RedirectToPage("./ResendEmailConfirmation", new { usernameOrEmail = Input.UsernameOrEmail });
                     }
                     else
                     {

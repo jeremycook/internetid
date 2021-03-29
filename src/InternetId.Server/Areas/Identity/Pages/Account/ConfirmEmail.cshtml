@@ -15,16 +15,13 @@
         {
             <p class="lead">
                 Thank you for confirming your email.
-                @if (Model.ReturnUrl != null)
-                {
-                    <a class="btn btn-outline-primary" href="@Model.ReturnUrl">OK</a>
-                }
+                <a class="btn btn-outline-primary" href="~/">OK</a>
             </p>
         }
         else
         {
             <p class="lead">
-                <a class="btn btn-outline-primary" asp-page="./ResendEmailConfirmation" asp-route-return-url="@Model.ReturnUrl">Request another confirmation code</a>
+                <a class="btn btn-outline-primary" asp-page="./ResendEmailConfirmation">Request another confirmation code</a>
             </p>
         }
 
