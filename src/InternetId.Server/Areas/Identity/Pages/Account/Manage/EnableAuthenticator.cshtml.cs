@@ -127,8 +127,7 @@ namespace InternetId.Server.Areas.Identity.Pages.Account.Manage
 
             SharedKey = FormatKey(unformattedKey);
 
-            var email = await _userManager.GetEmailAsync(user);
-            AuthenticatorUri = GenerateQrCodeUri(email, unformattedKey);
+            AuthenticatorUri = GenerateQrCodeUri(user, unformattedKey);
         }
 
         private string FormatKey(string unformattedKey)
@@ -148,14 +147,14 @@ namespace InternetId.Server.Areas.Identity.Pages.Account.Manage
             return result.ToString().ToLowerInvariant();
         }
 
-        private string GenerateQrCodeUri(string email, string unformattedKey)
+        private string GenerateQrCodeUri(User user, string unformattedKey)
         {
             string title = _internetIdServerOptions.Value.Title;
 
             return string.Format(
                 AuthenticatorUriFormat,
                 _urlEncoder.Encode(title),
-                _urlEncoder.Encode(email),
+                _urlEncoder.Encode(user.UserName),
                 unformattedKey);
         }
     }

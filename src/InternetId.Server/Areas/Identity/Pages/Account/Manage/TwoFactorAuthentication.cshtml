@@ -31,17 +31,20 @@
         </div>
     }
 
-    if (Model.IsMachineRemembered)
-    {
-        <form method="post" class="d-inline-block">
-            <button type="submit" class="btn btn-outline-primary">Forget this browser</button>
-        </form>
-    }
-    <a asp-page="./Disable2fa" class="btn btn-outline-primary">Disable 2FA</a>
-    <a asp-page="./GenerateRecoveryCodes" class="btn btn-outline-primary">Reset recovery codes</a>
+    <div class="mb-3">
+        @if (Model.IsMachineRemembered)
+        {
+            <form method="post" class="d-inline-block">
+                <button type="submit" class="btn btn-outline-primary">Forget this browser</button>
+            </form>
+        }
+        <a asp-page="./Disable2fa" class="btn btn-outline-primary">Disable 2FA</a>
+        <a asp-page="./GenerateRecoveryCodes" class="btn btn-outline-primary">Reset recovery codes</a>
+    </div>
+
+    <hr />
 }
 
-<h3>Authenticator app</h3>
 @if (!Model.HasAuthenticator)
 {
     <a id="enable-authenticator" asp-page="./EnableAuthenticator" class="btn btn-outline-primary">Add authenticator app</a>

@@ -62,7 +62,12 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 var profileClaims = _scopeClaims[Scopes.Profile];
                 foreach (var claim in userClaims.Where(o => profileClaims.Contains(o.Type)))
                 {
-                    claims.Add(claim.Type, claims.Values);
+                    claims.Add(claim.Type, claim.Value);
+                }
+
+                if (!claims.ContainsKey(Claims.PreferredUsername))
+                {
+                    claims.Add(Claims.PreferredUsername, user.UserName);
                 }
             }
 
@@ -71,7 +76,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 var addressClaims = _scopeClaims[Scopes.Address];
                 foreach (var claim in userClaims.Where(o => addressClaims.Contains(o.Type)))
                 {
-                    claims.Add(claim.Type, claims.Values);
+                    claims.Add(claim.Type, claim.Value);
                 }
             }
 

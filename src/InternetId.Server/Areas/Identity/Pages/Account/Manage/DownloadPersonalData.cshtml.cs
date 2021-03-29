@@ -1,14 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
-using InternetId.Users.Data;
+﻿using InternetId.Users.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace InternetId.Server.Areas.Identity.Pages.Account.Manage
 {
@@ -37,11 +36,20 @@ namespace InternetId.Server.Areas.Identity.Pages.Account.Manage
 
             // Only include personal data for download
             var personalData = new Dictionary<string, string>();
-            var personalDataProps = typeof(User).GetProperties().Where(
-                            prop => Attribute.IsDefined(prop, typeof(PersonalDataAttribute)));
+            var personalDataProps = typeof(User).GetProperties()
+                .Where(prop => Attribute.IsDefined(prop, typeof(PersonalDataAttribute)));
             foreach (var p in personalDataProps)
             {
                 personalData.Add(p.Name, p.GetValue(user)?.ToString() ?? "null");
+            }
+
+            var userClaims = await _userManager.GetClaimsAsync(user);
+            foreach (var c in userClaims)
+            {
+                if (!personalData.ContainsKey(c.Type))
+                {
+                    personalData.Add(c.Type, c.Value);
+                }
             }
 
             var logins = await _userManager.GetLoginsAsync(user);

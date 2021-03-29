@@ -4,14 +4,18 @@
     ViewData["Title"] = "Recovery code verification";
 }
 
-<h1>@ViewData["Title"]</h1>
-<hr />
-<p>
-    You have requested to log in with a recovery code. This login will not be remembered until you provide
-    an authenticator app code at log in or disable 2FA and log in again.
-</p>
-<div class="row">
-    <div class="col-md-4">
+<div class="card">
+    <div class="card-body">
+
+        <h1>@ViewData["Title"]</h1>
+
+        <hr />
+
+        <p>
+            You have requested to log in with a recovery code. This login will not be remembered until you provide
+            an authenticator app code at log in or disable 2FA and log in again.
+        </p>
+
         <form method="post">
             <div asp-validation-summary="All" class="text-danger"></div>
             <div class="mb-3">
@@ -21,6 +25,7 @@
             </div>
             <button type="submit" class="btn btn-primary">Log in</button>
         </form>
+
     </div>
 </div>
 

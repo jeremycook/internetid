@@ -15,6 +15,10 @@
     z-index: -100000;
 }
 
+.alert > :last-child {
+    margin-bottom: 0;
+}
+
 .card {
     border-color: rgb(255 255 255 / 0.50);
     box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
