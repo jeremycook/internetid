@@ -96,9 +96,20 @@ namespace InternetId.Server.Areas.Identity.Pages.Account
                         _logger.LogWarning("User account locked out.");
                         return RedirectToPage("./Lockout");
                     }
-                }
 
-                ModelState.AddModelError(string.Empty, "Invalid username/email or password.");
+                    if (!user.EmailConfirmed)
+                    {
+                        return RedirectToPage("./ResendEmailConfirmation", new { usernameOrEmail = Input.UsernameOrEmail, ReturnUrl = returnUrl });
+                    }
+                    else
+                    {
+                        ModelState.AddModelError(string.Empty, "Invalid username/email or password.");
+                    }
+                }
+                else
+                {
+                    ModelState.AddModelError(string.Empty, "Invalid username/email.");
+                }
             }
 
             // If we got this far, something failed, redisplay form

@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using PwnedPasswords.Client;
 using PwnedPasswords.Validator;
 using System;
@@ -26,6 +27,10 @@ namespace InternetId.Server
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddLogging(loggingBuilder => loggingBuilder.AddSeq());
+
+            services.Configure<InternetIdServerOptions>(Configuration.GetSection("InternetIdServer"));
+
             services.AddControllersWithViews(options =>
             {
                 options.Conventions.Add(new RouteTokenTransformerConvention(new SlugifyParameterTransformer()));

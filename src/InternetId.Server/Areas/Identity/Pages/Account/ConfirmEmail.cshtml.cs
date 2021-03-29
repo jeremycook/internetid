@@ -1,14 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using InternetId.Users.Data;
 using Microsoft.AspNetCore.Authorization;
-using InternetId.Users.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace InternetId.Server.Areas.Identity.Pages.Account
 {
@@ -22,10 +19,9 @@ namespace InternetId.Server.Areas.Identity.Pages.Account
             _userManager = userManager;
         }
 
-        [TempData]
-        public string StatusMessage { get; set; }
+        public string ReturnUrl { get; private set; }
 
-        public async Task<IActionResult> OnGetAsync(string userId, string code)
+        public async Task<IActionResult> OnGetAsync(string userId, string code, string returnUrl = null)
         {
             if (userId == null || code == null)
             {
@@ -38,9 +34,30 @@ namespace InternetId.Server.Areas.Identity.Pages.Account
                 return NotFound($"Unable to load user with ID '{userId}'.");
             }
 
-            code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code));
+            //code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code));
             var result = await _userManager.ConfirmEmailAsync(user, code);
-            StatusMessage = result.Succeeded ? "Thank you for confirming your email." : "Error confirming your email.";
+
+            if (!result.Succeeded)
+            {
+                ModelState.AddModelError("", "Your confirmation code expired or is invalid.");
+                foreach (var item in result.Errors)
+                {
+                    ModelState.AddModelError("", item.Description);
+                }
+            }
+
+            if (returnUrl != null)
+            {
+                if (Url.IsLocalUrl(returnUrl))
+                {
+                    ReturnUrl = returnUrl;
+                }
+                else
+                {
+                    ReturnUrl = Url.Page("Login", new { returnUrl = returnUrl });
+                }
+            }
+
             return Page();
         }
     }

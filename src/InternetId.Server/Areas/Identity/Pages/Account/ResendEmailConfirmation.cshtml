@@ -4,17 +4,28 @@
     ViewData["Title"] = "Resend email confirmation";
 }
 
-<h1>@ViewData["Title"]</h1>
-<h4>Enter your email.</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
+<div class="card">
+    <div class="card-body">
+
+        <div class="text-center">
+            <h1>@ViewData["Title"]</h1>
+            <p class="lead">We need to send you an account confirmation email. Please enter your username or email below.</p>
+        </div>
+
+        <hr />
+
         <form method="post">
             <div asp-validation-summary="All" class="text-danger"></div>
+            @if (Model.Message != null)
+            {
+                <div class="alert alert-success mb-3">
+                    @Model.Message
+                </div>
+            }
             <div class="mb-3">
-                <label asp-for="Input.Email"></label>
-                <input asp-for="Input.Email" class="form-control" />
-                <span asp-validation-for="Input.Email" class="text-danger"></span>
+                <label asp-for="Input.UsernameOrEmail"></label>
+                <input asp-for="Input.UsernameOrEmail" class="form-control" />
+                <span asp-validation-for="Input.UsernameOrEmail" class="text-danger"></span>
             </div>
             <button type="submit" class="btn btn-primary">Resend</button>
         </form>

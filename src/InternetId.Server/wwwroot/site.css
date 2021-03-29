@@ -7,7 +7,7 @@
     background: #0094ff no-repeat center center;
     background-image: linear-gradient(rgb(0 148 255 / 0.50), rgb(0 148 255 / 0.50)), url('bg.jpg');
     background-size: cover;
-    position: absolute;
+    position: fixed;
     top: 0;
     right: 0;
     bottom: 0;

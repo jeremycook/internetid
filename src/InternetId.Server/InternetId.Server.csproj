@@ -17,6 +17,7 @@
     <PackageReference Include="OpenIddict.AspNetCore" Version="3.0.1" />
     <PackageReference Include="OpenIddict.EntityFrameworkCore" Version="3.0.1" />
     <PackageReference Include="PwnedPasswords.Validator" Version="1.2.0" />
+    <PackageReference Include="Seq.Extensions.Logging" Version="6.0.0" />
   </ItemGroup>
 
   <ItemGroup>
