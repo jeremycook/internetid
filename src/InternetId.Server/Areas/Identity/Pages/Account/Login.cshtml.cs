@@ -71,13 +71,11 @@ namespace InternetId.Server.Areas.Identity.Pages.Account
 
         public async Task<IActionResult> OnPostAsync(string returnUrl = null)
         {
-            returnUrl ??= Url.Content("~/");
+            returnUrl ??= Url.Page("Manage");
 
             if (ModelState.IsValid)
             {
-                var user =
-                    await _userManager.FindByNameAsync(Input.UsernameOrEmail) ??
-                    await _userManager.FindByEmailAsync(Input.UsernameOrEmail);
+                var user = await _userManager.FindByNameOrEmailAsync(Input.UsernameOrEmail);
 
                 if (user != null)
                 {
@@ -99,7 +97,7 @@ namespace InternetId.Server.Areas.Identity.Pages.Account
 
                     if (!user.EmailConfirmed)
                     {
-                        return RedirectToPage("./ResendEmailConfirmation", new { usernameOrEmail = Input.UsernameOrEmail });
+                        return RedirectToPage("./ResendEmailConfirmation", new { usernameOrEmail = Input.UsernameOrEmail, returnUrl = returnUrl });
                     }
                     else
                     {

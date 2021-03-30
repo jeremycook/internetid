@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Options;
 using System.Net.Mail;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 
 namespace InternetId.Server.Areas.Identity
@@ -9,20 +10,20 @@ namespace InternetId.Server.Areas.Identity
     public class SmtpEmailSender : IEmailSender
     {
         private readonly IOptions<SmtpEmailSenderOptions> smtpEmailSenderOptions;
+        private readonly IOptions<InternetIdServerOptions> internetIdServerOptions;
 
-        public SmtpEmailSender(IOptions<SmtpEmailSenderOptions> smtpEmailSenderOptions)
+        public SmtpEmailSender(IOptions<SmtpEmailSenderOptions> smtpEmailSenderOptions, IOptions<InternetIdServerOptions> internetIdServerOptions)
         {
             this.smtpEmailSenderOptions = smtpEmailSenderOptions;
+            this.internetIdServerOptions = internetIdServerOptions;
         }
 
         public async Task SendEmailAsync(string email, string subject, string htmlMessage)
         {
-            MailAddress from = new MailAddress(smtpEmailSenderOptions.Value.From);
-            MailAddress to = new MailAddress(email);
-            using var message = new MailMessage(from, to)
+            using var message = new MailMessage(internetIdServerOptions.Value.FromEmailAddress, email)
             {
-                Subject = subject,
-                Body = htmlMessage,
+                Subject = string.Format("{0}: {1}", internetIdServerOptions.Value.Title, subject),
+                Body = string.Format(internetIdServerOptions.Value.EmailFormat, HtmlEncoder.Default.Encode(subject), htmlMessage),
                 IsBodyHtml = true,
                 BodyEncoding = Encoding.UTF8,
                 HeadersEncoding = Encoding.UTF8,

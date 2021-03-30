@@ -18,15 +18,14 @@ namespace InternetId.Server.Areas.Identity.Pages.Account
     {
         private readonly UserManager<User> _userManager;
         private readonly IEmailSender _emailSender;
-        private readonly IOptions<IdentityOptions> _identityOptions;
 
-        public ResendEmailConfirmationModel(UserManager<User> userManager, IEmailSender emailSender, IOptions<IdentityOptions> identityOptions)
+        public ResendEmailConfirmationModel(UserManager<User> userManager, IEmailSender emailSender)
         {
             _userManager = userManager;
             _emailSender = emailSender;
-            _identityOptions = identityOptions;
         }
 
+        public string ReturnUrl { get; private set; }
         [BindProperty]
         public InputModel Input { get; set; }
 
@@ -39,8 +38,9 @@ namespace InternetId.Server.Areas.Identity.Pages.Account
             public string UsernameOrEmail { get; set; }
         }
 
-        public void OnGet(string usernameOrEmail = null)
+        public void OnGet(string usernameOrEmail = null, string returnUrl = null)
         {
+            ReturnUrl = returnUrl;
             Input = new InputModel
             {
                 UsernameOrEmail = usernameOrEmail
@@ -49,6 +49,8 @@ namespace InternetId.Server.Areas.Identity.Pages.Account
 
         public async Task<IActionResult> OnPostAsync(string returnUrl = null)
         {
+            ReturnUrl = returnUrl;
+
             if (!ModelState.IsValid)
             {
                 return Page();
@@ -73,8 +75,7 @@ namespace InternetId.Server.Areas.Identity.Pages.Account
                 "Confirm your email",
                 $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
 
-            Message = "Verification email sent. Please check your email.";
-            return Page();
+            return RedirectToPage("RegisterConfirmation", new { email = user.Email, returnUrl = returnUrl });
         }
     }
 }

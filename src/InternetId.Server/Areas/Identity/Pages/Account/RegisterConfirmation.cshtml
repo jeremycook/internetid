@@ -1,15 +1,19 @@
 ﻿@page
 @model RegisterConfirmationModel
 @{
-    ViewData["Title"] = "Register confirmation";
+    ViewData["Title"] = "Account confirmation";
 }
 
-<div class="card text-center">
+<div class="card">
     <div class="card-body">
 
-        <h1>@ViewData["Title"]</h1>
+        <h1 class="text-center">@ViewData["Title"]</h1>
+        <p class="alert alert-info">
+            We sent you an email with a confirmation link.
+        </p>
         <p>
-            Please check your email to confirm your account.
+            Please click the link in that email to finish the account confirmation process.
+            Check your spam/junk mail folder if you don't see it in your main email folder.
         </p>
         @if (Model.ReturnUrl != null)
         {

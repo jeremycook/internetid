@@ -27,22 +27,22 @@ using static OpenIddict.Abstractions.OpenIddictConstants;
 namespace InternetId.Server.Areas.Connect.Controllers
 {
     [Area("Connect")]
-    public class AuthorizeController : Controller
+    public class AuthorizationController : Controller
     {
         private readonly IOpenIddictApplicationManager _applicationManager;
         private readonly IOpenIddictAuthorizationManager _authorizationManager;
         private readonly IOpenIddictScopeManager _scopeManager;
         private readonly SignInManager<User> _signInManager;
         private readonly UserManager<User> _userManager;
-        private readonly ILogger<AuthorizeController> _logger;
+        private readonly ILogger<AuthorizationController> _logger;
 
-        public AuthorizeController(
+        public AuthorizationController(
             IOpenIddictApplicationManager applicationManager,
             IOpenIddictAuthorizationManager authorizationManager,
             IOpenIddictScopeManager scopeManager,
             SignInManager<User> signInManager,
             UserManager<User> userManager,
-            ILogger<AuthorizeController> logger)
+            ILogger<AuthorizationController> logger)
         {
             _applicationManager = applicationManager;
             _authorizationManager = authorizationManager;
@@ -228,7 +228,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
 
         [Authorize, FormValueRequired("submit.Accept")]
         [HttpPost("~/connect/authorize")]
-        [IgnoreAntiforgeryToken]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Accept()
         {
             var request = HttpContext.GetOpenIddictServerRequest() ??
@@ -307,7 +307,9 @@ namespace InternetId.Server.Areas.Connect.Controllers
         [HttpGet("~/connect/logout")]
         public IActionResult Logout() => View();
 
-        [ActionName(nameof(Logout)), HttpPost("~/connect/logout"), ValidateAntiForgeryToken]
+        [ActionName(nameof(Logout))]
+        [HttpPost("~/connect/logout")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> LogoutPost()
         {
             // Ask ASP.NET Core Identity to delete the local and external cookies created
@@ -326,7 +328,8 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 });
         }
 
-        [HttpPost("~/connect/token"), Produces("application/json")]
+        [HttpPost("~/connect/token")]
+        [Produces("application/json")]
         public async Task<IActionResult> Exchange()
         {
             var request = HttpContext.GetOpenIddictServerRequest() ??

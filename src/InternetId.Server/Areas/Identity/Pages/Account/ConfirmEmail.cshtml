@@ -13,15 +13,17 @@
 
         @if (ModelState.IsValid)
         {
-            <p class="lead">
-                Thank you for confirming your email.
-                <a class="btn btn-outline-primary" href="~/">OK</a>
+            <p class="alert alert-info">
+                Confirmed!
+            </p>
+            <p>
+                If you were trying to log into an app or online service in another device or window you may want to return to it, or you can <a asp-page="Login">click here to manage your InternetID</a>.
             </p>
         }
         else
         {
-            <p class="lead">
-                <a class="btn btn-outline-primary" asp-page="./ResendEmailConfirmation">Request another confirmation code</a>
+            <p>
+                <a class="btn btn-outline-primary" asp-page="ResendEmailConfirmation" asp-route-return-url="@Model.ReturnUrl">Request another confirmation link</a>
             </p>
         }
 

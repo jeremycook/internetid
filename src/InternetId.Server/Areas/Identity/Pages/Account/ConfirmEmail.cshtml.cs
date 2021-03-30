@@ -19,11 +19,13 @@ namespace InternetId.Server.Areas.Identity.Pages.Account
             _userManager = userManager;
         }
 
-        public async Task<IActionResult> OnGetAsync(string userId, string code)
+        public string ReturnUrl { get; private set; }
+
+        public async Task<IActionResult> OnGetAsync(string userId, string code, string returnUrl = null)
         {
             if (userId == null || code == null)
             {
-                return RedirectToPage("/Index");
+                return Redirect("~/");
             }
 
             var user = await _userManager.FindByIdAsync(userId);
@@ -42,6 +44,8 @@ namespace InternetId.Server.Areas.Identity.Pages.Account
                     ModelState.AddModelError("", item.Description);
                 }
             }
+
+            ReturnUrl = returnUrl;
 
             return Page();
         }

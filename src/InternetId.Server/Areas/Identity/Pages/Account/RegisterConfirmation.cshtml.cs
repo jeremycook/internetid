@@ -27,7 +27,7 @@ namespace InternetId.Server.Areas.Identity.Pages.Account
         {
             if (email == null)
             {
-                return RedirectToPage("/Index");
+                return Redirect("~/");
             }
 
             var user = await _userManager.FindByEmailAsync(email);
