@@ -31,7 +31,7 @@ namespace InternetId.Users.Services
             var code = await codeManager.GenerateCodeAsync(veriyEmailPurpose, user.Id, email.Trim());
             var purposeOptions = codeManager.GetPurposeOptions(veriyEmailPurpose);
 
-            await emailer.SendEmailAsync(email.Trim(), "Verification Code", $"{HtmlEncoder.Default.Encode(code)} is your email verification code. It must be used within {TimeSpan.FromMinutes(purposeOptions.LifespanMinutes).Humanize()}.");
+            await emailer.SendEmailAsync(email.Trim(), "Verification Code", $"{HtmlEncoder.Default.Encode(code)} is your email verification code. You have {TimeSpan.FromMinutes(purposeOptions.LifespanMinutes).Humanize()} to use it.");
         }
 
         public async Task<CodeResult> VerifyEmailAsync(User user, string code)

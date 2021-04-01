@@ -8,23 +8,21 @@ namespace InternetId.Common.Crypto
 {
     public class Hasher
     {
-        private static readonly Dictionary<int, int> rates = new Dictionary<int, int>();
+        private const int minimumIterations = 100_000;
+        private const int saltLength = 16;
+        private const int keyLength = 32;
 
-        private readonly int iterations = 100_000;
-        private readonly int saltLength = 16;
-        private readonly int keyLength = 32;
-
-        private const string rfc2898derivebytes = "rfc2898derivebytes";
+        private const string rfc2898 = "rfc2898";
 
         public string Hash(string plain, TimeSpan lifespan)
         {
             byte[] salt = new byte[saltLength];
             RandomNumberGenerator.Fill(salt);
 
-            return Hash(plain, lifespan, salt, rfc2898derivebytes);
+            return Hash(plain, lifespan, salt, rfc2898, null);
         }
 
-        public string Hash(string plain, TimeSpan lifespan, byte[] salt, string algorithm = rfc2898derivebytes)
+        public string Hash(string plain, TimeSpan lifespan, byte[] salt, string algorithm, int? iterations)
         {
             if (string.IsNullOrEmpty(plain)) throw new ArgumentException($"'{nameof(plain)}' cannot be null or empty.", nameof(plain));
             if (salt is null || salt.Length < 16) throw new ArgumentOutOfRangeException(nameof(salt), $"'{nameof(salt)}' cannot be null or less than 16 bits.");
@@ -32,7 +30,7 @@ namespace InternetId.Common.Crypto
 
             var sw = new Stopwatch();
             double entropy = Math.Pow(2, keyLength);
-            int its = iterations;
+            int iters = iterations ?? minimumIterations;
 
             byte[] key;
             do
@@ -40,21 +38,25 @@ namespace InternetId.Common.Crypto
                 sw.Restart();
                 switch (algorithm)
                 {
-                    case rfc2898derivebytes:
-
-                        Rfc2898DeriveBytes deriveBytes = new Rfc2898DeriveBytes(password: plain, salt: salt, iterations: its);
-
+                    case rfc2898:
+                        Rfc2898DeriveBytes deriveBytes = new Rfc2898DeriveBytes(password: plain, salt: salt, iterations: iters);
                         key = deriveBytes.GetBytes(keyLength);
-
                         break;
                     default:
                         throw new NotSupportedException($"The {algorithm} algorithm is not supported.");
                 }
 
+                // If iterations was explicitly provided we use that value as-is.
+                if (iterations != null)
+                {
+                    break;
+                }
+
+                // Account for up to 1000 times the compute of this machine.
                 var timeToBruteForce = (entropy * sw.Elapsed) / 1000;
                 if (timeToBruteForce < lifespan)
                 {
-                    its = (int)Math.Min(int.MaxValue, Math.Max(iterations, its * 1000 * (lifespan.Ticks / sw.Elapsed.Ticks)));
+                    iters = (int)Math.Min(int.MaxValue, Math.Max(minimumIterations, iters * 1000 * (lifespan.Ticks / sw.Elapsed.Ticks)));
                 }
                 else
                 {
@@ -63,13 +65,13 @@ namespace InternetId.Common.Crypto
 
             } while (true);
 
-            return JsonSerializer.Serialize(new Hash(algorithm, key, salt));
+            return JsonSerializer.Serialize(new Hash(algorithm, iters, key, salt));
         }
 
         public bool Verify(string plain, TimeSpan lifespan, string hashString)
         {
             Hash hash = JsonSerializer.Deserialize<Hash>(hashString);
-            string rehash = Hash(plain, lifespan, hash.GetSalt(), hash.GetAlgorithm());
+            string rehash = Hash(plain, lifespan, hash.GetSalt(), hash.GetAlgorithm(), hash.GetIterations());
 
             return SlowEquals(hashString, rehash);
         }

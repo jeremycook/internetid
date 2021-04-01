@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Humanizer;
+using System;
 
 namespace InternetId.Common.Codes
 {
@@ -18,7 +19,7 @@ namespace InternetId.Common.Codes
         public static CodeResult TryAgainLater(Code userCode, DateTimeOffset lockedOutUntil) => new CodeResult
         {
             IsValid = false,
-            Message = $"Too many failed attempts. Try again in {Math.Ceiling((DateTimeOffset.Now - lockedOutUntil).TotalMinutes)} minutes.",
+            Message = $"Too many failed attempts. You'll be able to try again in {(DateTimeOffset.Now - lockedOutUntil).Humanize()}.",
             UserCode = userCode,
         };
 
