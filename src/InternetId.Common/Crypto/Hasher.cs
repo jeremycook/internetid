@@ -9,54 +9,112 @@ namespace InternetId.Common.Crypto
     public class Hasher
     {
         private const int minimumIterations = 100_000;
-        private const int saltLength = 16;
-        private const int keyLength = 32;
+        private const int saltBytes = 16;
+        private const int keyBytes = 32;
 
         private const string rfc2898 = "rfc2898";
 
-        public string Hash(string plain, TimeSpan lifespan)
+        private static readonly JsonSerializerOptions jsonSerializerOptions = new JsonSerializerOptions
         {
-            byte[] salt = new byte[saltLength];
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        };
+
+        private static readonly Dictionary<int, int> entropyToIterations = new Dictionary<int, int>();
+
+        public string Hash(string password, int passwordEntropy, TimeSpan lifespan)
+        {
+            byte[] salt = new byte[saltBytes];
             RandomNumberGenerator.Fill(salt);
 
-            return Hash(plain, lifespan, salt, rfc2898, null);
+            return Hash(password, passwordEntropy, salt, rfc2898, DateTimeOffset.UtcNow.AddSeconds(-1), DateTimeOffset.UtcNow.Add(lifespan));
         }
 
-        public string Hash(string plain, TimeSpan lifespan, byte[] salt, string algorithm, int? iterations)
+        /// <summary>
+        /// Calculate the key.
+        /// </summary>
+        /// <param name="password"></param>
+        /// <param name="salt"></param>
+        /// <param name="algorithm"></param>
+        /// <param name="iterations"></param>
+        /// <returns></returns>
+        public byte[] CalculateKey(string password, byte[] salt, string algorithm, int iterations, DateTimeOffset notBefore, DateTimeOffset notAfter)
         {
-            if (string.IsNullOrEmpty(plain)) throw new ArgumentException($"'{nameof(plain)}' cannot be null or empty.", nameof(plain));
-            if (salt is null || salt.Length < 16) throw new ArgumentOutOfRangeException(nameof(salt), $"'{nameof(salt)}' cannot be null or less than 16 bits.");
-            if (string.IsNullOrEmpty(algorithm)) throw new ArgumentException($"'{nameof(algorithm)}' cannot be null or empty.", nameof(algorithm));
+            if (string.IsNullOrWhiteSpace(password)) throw new ArgumentException($"'{nameof(password)}' cannot be null or empty.", nameof(password));
+            if (salt is null || salt.Length < 16) throw new ArgumentOutOfRangeException(nameof(salt), $"'{nameof(salt)}' cannot be null or less than 16 bytes in length.");
+            if (string.IsNullOrWhiteSpace(algorithm)) throw new ArgumentException($"'{nameof(algorithm)}' cannot be null or empty.", nameof(algorithm));
+            if (iterations < minimumIterations) throw new InvalidOperationException($"The number of iterations {iterations} is less than the minimum of {minimumIterations}.");
 
+            byte[] key;
+
+            switch (algorithm)
+            {
+                case rfc2898:
+                    Rfc2898DeriveBytes deriveBytes = new Rfc2898DeriveBytes(password: password + notBefore.ToUnixTimeMilliseconds() + notAfter.ToUnixTimeMilliseconds(), salt: salt, iterations: iterations);
+                    key = deriveBytes.GetBytes(keyBytes);
+                    break;
+                default:
+                    throw new NotSupportedException($"The {algorithm} algorithm is not supported.");
+            }
+
+            return key;
+        }
+
+        /// <summary>
+        /// Hash the <paramref name="password"/>, adjusting algorithm so that the key cannot easily be brute forced before it expires.
+        /// </summary>
+        /// <param name="password"></param>
+        /// <param name="passwordEntropy"></param>
+        /// <param name="salt"></param>
+        /// <param name="algorithm"></param>
+        /// <param name="iterations"></param>
+        /// <param name="notBefore"></param>
+        /// <param name="notAfter"></param>
+        /// <returns></returns>
+        public string Hash(string password, int passwordEntropy, byte[] salt, string algorithm, DateTimeOffset notBefore, DateTimeOffset notAfter)
+        {
             var sw = new Stopwatch();
-            double entropy = Math.Pow(2, keyLength);
-            int iters = iterations ?? minimumIterations;
+
+            // Step password entropy so that the entropy-to-iterations cache clusters.
+            passwordEntropy = 10 * (int)Math.Floor((double)passwordEntropy / 10);
+
+            if (!entropyToIterations.TryGetValue(passwordEntropy, out int iterations))
+            {
+                iterations = minimumIterations;
+            }
+
+            // The total time an adversary would have to brute force a hash
+            TimeSpan lifespan = notAfter - DateTimeOffset.UtcNow;
 
             byte[] key;
             do
             {
                 sw.Restart();
-                switch (algorithm)
-                {
-                    case rfc2898:
-                        Rfc2898DeriveBytes deriveBytes = new Rfc2898DeriveBytes(password: plain, salt: salt, iterations: iters);
-                        key = deriveBytes.GetBytes(keyLength);
-                        break;
-                    default:
-                        throw new NotSupportedException($"The {algorithm} algorithm is not supported.");
-                }
+                key = CalculateKey(password, salt, algorithm, iterations, notBefore, notAfter);
+                sw.Stop();
 
-                // If iterations was explicitly provided we use that value as-is.
-                if (iterations != null)
+                // We've reached the maximum number of iterations.
+                if (iterations >= int.MaxValue)
                 {
                     break;
                 }
 
-                // Account for up to 1000 times the compute of this machine.
-                var timeToBruteForce = (entropy * sw.Elapsed) / 1000;
-                if (timeToBruteForce < lifespan)
+                // Estimated days to brute force the hash with the current hardware.
+                double daysToBruteForce = passwordEntropy * sw.Elapsed.TotalDays;
+
+                // Allow for up to 1000 times the compute of the current hardware.
+                double ratioOfLifespanVsBruteForce = 1000 * lifespan.TotalDays / daysToBruteForce;
+
+                if (ratioOfLifespanVsBruteForce > 1)
                 {
-                    iters = (int)Math.Min(int.MaxValue, Math.Max(minimumIterations, iters * 1000 * (lifespan.Ticks / sw.Elapsed.Ticks)));
+                    // Increase iterations to compensate and try again.
+                    iterations = (int)Math.Min(int.MaxValue, Math.Max(minimumIterations, iterations * ratioOfLifespanVsBruteForce));
+
+                    if (!entropyToIterations.TryGetValue(passwordEntropy, out int currentIterations) || currentIterations < iterations)
+                    {
+                        // Cache to save time recalculating in the future.
+                        entropyToIterations[passwordEntropy] = iterations;
+                    }
                 }
                 else
                 {
@@ -65,29 +123,46 @@ namespace InternetId.Common.Crypto
 
             } while (true);
 
-            return JsonSerializer.Serialize(new Hash(algorithm, iters, key, salt));
+            return JsonSerializer.Serialize(new Hash(key, algorithm, salt, iterations, notBefore, notAfter), jsonSerializerOptions);
         }
 
-        public bool Verify(string plain, TimeSpan lifespan, string hashString)
+        public HasherVerificationResult Verify(string password, string hashString)
         {
-            Hash hash = JsonSerializer.Deserialize<Hash>(hashString);
-            string rehash = Hash(plain, lifespan, hash.GetSalt(), hash.GetAlgorithm(), hash.GetIterations());
+            if (string.IsNullOrWhiteSpace(password)) throw new ArgumentException($"'{nameof(password)}' cannot be null or empty.", nameof(password));
+            if (string.IsNullOrWhiteSpace(hashString)) throw new ArgumentException($"'{nameof(hashString)}' cannot be null or empty.", nameof(hashString));
 
-            return SlowEquals(hashString, rehash);
-        }
+            Hash hash = JsonSerializer.Deserialize<Hash>(hashString, jsonSerializerOptions);
 
-        /// <summary>
-        /// Compare two arrays for equality using a constant time comparison method.
-        /// </summary>
-        /// <param name="red"></param>
-        /// <param name="blue"></param>
-        /// <returns></returns>
-        public static bool SlowEquals(string red, string blue)
-        {
-            uint diff = (uint)red.Length ^ (uint)blue.Length;
-            for (int i = 0; i < red.Length && i < blue.Length; i++)
-                diff |= (uint)(red[i] ^ blue[i]);
-            return diff == 0;
+            byte[] salt = hash.GetSalt();
+            string algorithm = hash.GetAlgorithm();
+            int iterations = hash.GetIterations();
+            DateTimeOffset notBefore = hash.GetNotBefore();
+            DateTimeOffset notAfter = hash.GetNotAfter();
+
+            byte[] key = CalculateKey(password, salt, algorithm, iterations, notBefore, notAfter);
+
+            Hash rehash = new Hash(key, algorithm, salt, iterations, notBefore, notAfter);
+
+            if (hash.Equals(rehash))
+            {
+                DateTimeOffset utcNow = DateTimeOffset.UtcNow;
+                if (utcNow < notBefore)
+                {
+                    return HasherVerificationResult.Inactive;
+                }
+                else if (notAfter < utcNow)
+                {
+                    return HasherVerificationResult.Expired;
+                }
+                else
+                {
+                    return HasherVerificationResult.Valid;
+                }
+            }
+            else
+            {
+                return HasherVerificationResult.Invalid;
+            }
         }
     }
 }

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace InternetId.Common.Codes
+namespace InternetId.Credentials
 {
-    public class Code
+    public class Credential
     {
         [Required]
         public string Purpose { get; set; } = null!;
@@ -13,8 +13,6 @@ namespace InternetId.Common.Codes
 
         [Required(AllowEmptyStrings = true)]
         public string Data { get; set; } = string.Empty;
-
-        public DateTimeOffset ValidUntil { get; set; }
 
         public int Attempts { get; set; }
 

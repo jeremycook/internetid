@@ -11,8 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\InternetId.Codes\InternetId.Codes.csproj" />
-    <ProjectReference Include="..\InternetId.Common\InternetId.Common.csproj" />
+    <ProjectReference Include="..\InternetId.Credentials\InternetId.Credentials.csproj" />
   </ItemGroup>
 
 </Project>

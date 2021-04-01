@@ -1,5 +1,5 @@
 using InternetId.Common;
-using InternetId.Common.Codes;
+using InternetId.Credentials;
 using InternetId.Common.Crypto;
 using InternetId.Common.Email;
 using InternetId.OpenIddict.Data;
@@ -39,9 +39,7 @@ namespace InternetId.Server
             services.AddScoped<Hasher>();
 
             // InternetId.Codes
-            services.Configure<InternetIdCodesOptions>(Configuration.GetSection("InternetIdCodes"));
-            services.AddDbContext<InternetIdCodesDbContext>(options => options.UseNpgsql(Configuration.GetConnectionString("InternetIdCodes")));
-            services.AddScoped<CodeManager>();
+            services.AddInternetIdCredentials(Configuration.GetSection("Credentials"), options => options.UseNpgsql(Configuration.GetConnectionString("Credentials")));
 
             // InternetId.User
             services.AddScoped<VerificationService>();

@@ -22,8 +22,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\InternetId.Codes\InternetId.Codes.csproj" />
-    <ProjectReference Include="..\InternetId.Common\InternetId.Common.csproj" />
     <ProjectReference Include="..\InternetId.OpenIddict\InternetId.OpenIddict.csproj" />
     <ProjectReference Include="..\InternetId.Users\InternetId.Users.csproj" />
   </ItemGroup>
