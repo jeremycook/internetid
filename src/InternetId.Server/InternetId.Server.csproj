@@ -18,9 +18,12 @@
     <PackageReference Include="OpenIddict.EntityFrameworkCore" Version="3.0.1" />
     <PackageReference Include="PwnedPasswords.Validator" Version="1.2.0" />
     <PackageReference Include="Seq.Extensions.Logging" Version="6.0.0" />
+    <PackageReference Include="SimpleBase" Version="3.0.2" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\InternetId.Codes\InternetId.Codes.csproj" />
+    <ProjectReference Include="..\InternetId.Common\InternetId.Common.csproj" />
     <ProjectReference Include="..\InternetId.OpenIddict\InternetId.OpenIddict.csproj" />
     <ProjectReference Include="..\InternetId.Users\InternetId.Users.csproj" />
   </ItemGroup>

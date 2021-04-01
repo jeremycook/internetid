@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace InternetId.Server
+namespace InternetId.Common
 {
-    public class InternetIdServerOptions
+    public class InternetIdOptions
     {
         public string Title { get; set; }
         public string FromEmailAddress { get; set; }

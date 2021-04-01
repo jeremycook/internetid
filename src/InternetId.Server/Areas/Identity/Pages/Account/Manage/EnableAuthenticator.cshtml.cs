@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using InternetId.Common;
 
 namespace InternetId.Server.Areas.Identity.Pages.Account.Manage
 {
@@ -20,19 +21,19 @@ namespace InternetId.Server.Areas.Identity.Pages.Account.Manage
         private readonly UserManager<User> _userManager;
         private readonly ILogger<EnableAuthenticatorModel> _logger;
         private readonly UrlEncoder _urlEncoder;
-        private readonly IOptions<InternetIdServerOptions> _internetIdServerOptions;
+        private readonly IOptions<InternetIdOptions> _internetIdOptions;
         private const string AuthenticatorUriFormat = "otpauth://totp/{0}:{1}?secret={2}&issuer={0}&digits=6";
 
         public EnableAuthenticatorModel(
             UserManager<User> userManager,
             ILogger<EnableAuthenticatorModel> logger,
             UrlEncoder urlEncoder,
-            IOptions<InternetIdServerOptions> internetIdServerOptions)
+            IOptions<InternetIdOptions> internetIdOptions)
         {
             _userManager = userManager;
             _logger = logger;
             _urlEncoder = urlEncoder;
-            _internetIdServerOptions = internetIdServerOptions;
+            _internetIdOptions = internetIdOptions;
         }
 
         public string SharedKey { get; set; }
@@ -149,7 +150,7 @@ namespace InternetId.Server.Areas.Identity.Pages.Account.Manage
 
         private string GenerateQrCodeUri(User user, string unformattedKey)
         {
-            string title = _internetIdServerOptions.Value.Title;
+            string title = _internetIdOptions.Value.Title;
 
             return string.Format(
                 AuthenticatorUriFormat,

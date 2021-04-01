@@ -1,3 +1,4 @@
+using InternetId.Common.Codes;
 using InternetId.OpenIddict.Data;
 using InternetId.Users.Data;
 using Microsoft.AspNetCore.Hosting;
@@ -31,6 +32,7 @@ namespace InternetId.Server
 
             using var scope = serviceProvider.CreateScope();
 
+            await scope.ServiceProvider.GetRequiredService<InternetIdCodesDbContext>().Database.EnsureCreatedAsync();
             await scope.ServiceProvider.GetRequiredService<OpenIddictDbContext>().Database.EnsureCreatedAsync();
 
             var context = scope.ServiceProvider.GetRequiredService<UsersDbContext>();

@@ -1,4 +1,5 @@
 ﻿using InternetId.Users.Data;
+using InternetId.Users.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -16,14 +17,17 @@ namespace InternetId.Server.Areas.Identity.Pages.Account
     public class LoginModel : PageModel
     {
         private readonly UserManager<User> _userManager;
+        private readonly VerificationService _verifyEmailService;
         private readonly SignInManager<User> _signInManager;
         private readonly ILogger<LoginModel> _logger;
 
         public LoginModel(SignInManager<User> signInManager,
             ILogger<LoginModel> logger,
-            UserManager<User> userManager)
+            UserManager<User> userManager,
+            VerificationService verifyEmailService)
         {
             _userManager = userManager;
+            _verifyEmailService = verifyEmailService;
             _signInManager = signInManager;
             _logger = logger;
         }
@@ -71,7 +75,7 @@ namespace InternetId.Server.Areas.Identity.Pages.Account
 
         public async Task<IActionResult> OnPostAsync(string returnUrl = null)
         {
-            returnUrl ??= Url.Page("Manage");
+            returnUrl ??= Url.Page("Manage/Index");
 
             if (ModelState.IsValid)
             {
@@ -87,17 +91,18 @@ namespace InternetId.Server.Areas.Identity.Pages.Account
                     }
                     if (result.RequiresTwoFactor)
                     {
-                        return RedirectToPage("./LoginWith2fa", new { ReturnUrl = returnUrl, RememberMe = Input.RememberMe });
+                        return RedirectToPage("LoginWith2fa", new { returnUrl = returnUrl, rememberMe = Input.RememberMe });
                     }
                     if (result.IsLockedOut)
                     {
                         _logger.LogWarning("User account locked out.");
-                        return RedirectToPage("./Lockout");
+                        return RedirectToPage("Lockout");
                     }
 
-                    if (!user.EmailConfirmed)
+                    if (_userManager.Options.SignIn.RequireConfirmedAccount && !user.EmailConfirmed)
                     {
-                        return RedirectToPage("./ResendEmailConfirmation", new { usernameOrEmail = Input.UsernameOrEmail, returnUrl = returnUrl });
+                        await _verifyEmailService.SendVerifyEmailCodeAsync(user, user.Email);
+                        return RedirectToPage("EmailVerification", new { username = user.UserName, returnUrl = returnUrl });
                     }
                     else
                     {

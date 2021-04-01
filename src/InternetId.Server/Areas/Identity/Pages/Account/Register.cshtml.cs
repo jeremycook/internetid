@@ -1,4 +1,5 @@
 ﻿using InternetId.Users.Data;
+using InternetId.Users.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -22,17 +23,20 @@ namespace InternetId.Server.Areas.Identity.Pages.Account
         private readonly UserManager<User> _userManager;
         private readonly ILogger<RegisterModel> _logger;
         private readonly IEmailSender _emailSender;
+        private readonly VerificationService _verifyEmailService;
 
         public RegisterModel(
             UserManager<User> userManager,
             SignInManager<User> signInManager,
             ILogger<RegisterModel> logger,
-            IEmailSender emailSender)
+            IEmailSender emailSender,
+            VerificationService verifyEmailService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _logger = logger;
             _emailSender = emailSender;
+            _verifyEmailService = verifyEmailService;
         }
 
         [BindProperty]
@@ -97,19 +101,10 @@ namespace InternetId.Server.Areas.Identity.Pages.Account
 
                     _logger.LogInformation("User created a new account with password.");
 
-                    var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-
-                    var callbackUrl = Url.Page(
-                        "/Account/ConfirmEmail",
-                        pageHandler: null,
-                        values: new { area = "Identity", userId = user.Id, code = code, returnUrl = returnUrl },
-                        protocol: Request.Scheme);
-                    await _emailSender.SendEmailAsync(Input.Email, "Confirm your email",
-                        $"Please confirm your {HtmlEncoder.Default.Encode(user.UserName!)} InternetID by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
-
                     if (_userManager.Options.SignIn.RequireConfirmedAccount)
                     {
-                        return RedirectToPage("RegisterConfirmation", new { username = Input.Username, email = Input.Email, returnUrl = returnUrl });
+                        await _verifyEmailService.SendVerifyEmailCodeAsync(user, user.Email);
+                        return RedirectToPage("EmailVerification", new { username = Input.Username, returnUrl = returnUrl });
                     }
                     else
                     {

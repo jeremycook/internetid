@@ -1,29 +1,28 @@
-﻿using Microsoft.AspNetCore.Identity.UI.Services;
-using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Options;
 using System.Net.Mail;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 
-namespace InternetId.Server.Areas.Identity
+namespace InternetId.Common.Email
 {
-    public class SmtpEmailSender : IEmailSender
+    public class SmtpEmailer : IEmailer
     {
-        private readonly IOptions<SmtpEmailSenderOptions> smtpEmailSenderOptions;
-        private readonly IOptions<InternetIdServerOptions> internetIdServerOptions;
+        private readonly IOptions<SmtpEmailerOptions> smtpEmailerOptions;
+        private readonly IOptions<InternetIdOptions> internetIdOptions;
 
-        public SmtpEmailSender(IOptions<SmtpEmailSenderOptions> smtpEmailSenderOptions, IOptions<InternetIdServerOptions> internetIdServerOptions)
+        public SmtpEmailer(IOptions<SmtpEmailerOptions> smtpEmailerOptions, IOptions<InternetIdOptions> internetIdOptions)
         {
-            this.smtpEmailSenderOptions = smtpEmailSenderOptions;
-            this.internetIdServerOptions = internetIdServerOptions;
+            this.smtpEmailerOptions = smtpEmailerOptions;
+            this.internetIdOptions = internetIdOptions;
         }
 
         public async Task SendEmailAsync(string email, string subject, string htmlMessage)
         {
-            using var message = new MailMessage(internetIdServerOptions.Value.FromEmailAddress, email)
+            using var message = new MailMessage(internetIdOptions.Value.FromEmailAddress, email)
             {
-                Subject = string.Format("{0}: {1}", internetIdServerOptions.Value.Title, subject),
-                Body = string.Format(internetIdServerOptions.Value.EmailFormat, HtmlEncoder.Default.Encode(subject), htmlMessage),
+                Subject = string.Format("{0}: {1}", internetIdOptions.Value.Title, subject),
+                Body = string.Format(internetIdOptions.Value.EmailFormat, HtmlEncoder.Default.Encode(subject), htmlMessage),
                 IsBodyHtml = true,
                 BodyEncoding = Encoding.UTF8,
                 HeadersEncoding = Encoding.UTF8,
@@ -37,7 +36,7 @@ namespace InternetId.Server.Areas.Identity
 
         private void Configure(SmtpClient smtpClient)
         {
-            var options = smtpEmailSenderOptions.Value;
+            var options = smtpEmailerOptions.Value;
 
             smtpClient.Host = options.Host;
             if (options.Port != null)

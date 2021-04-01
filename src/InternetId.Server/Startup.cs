@@ -1,10 +1,13 @@
+using InternetId.Common;
+using InternetId.Common.Codes;
+using InternetId.Common.Crypto;
+using InternetId.Common.Email;
 using InternetId.OpenIddict.Data;
-using InternetId.Server.Areas.Identity;
 using InternetId.Users.Data;
+using InternetId.Users.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -29,7 +32,19 @@ namespace InternetId.Server
         {
             services.AddLogging(loggingBuilder => loggingBuilder.AddSeq());
 
-            services.Configure<InternetIdServerOptions>(Configuration.GetSection("InternetIdServer"));
+            // InternetId.Common
+            services.Configure<InternetIdOptions>(Configuration.GetSection("InternetId"));
+            services.Configure<SmtpEmailerOptions>(Configuration.GetSection("SmtpEmailer"));
+            services.AddScoped<IEmailer, SmtpEmailer>();
+            services.AddScoped<Hasher>();
+
+            // InternetId.Codes
+            services.Configure<InternetIdCodesOptions>(Configuration.GetSection("InternetIdCodes"));
+            services.AddDbContext<InternetIdCodesDbContext>(options => options.UseNpgsql(Configuration.GetConnectionString("InternetIdCodes")));
+            services.AddScoped<CodeManager>();
+
+            // InternetId.User
+            services.AddScoped<VerificationService>();
 
             services.AddControllersWithViews(options =>
             {
@@ -39,6 +54,7 @@ namespace InternetId.Server
             {
                 options.Conventions.Add(new PageRouteTransformerConvention(new SlugifyParameterTransformer()));
             });
+
 
             services.AddDbContext<UsersDbContext>(options => options
                 .UseNpgsql(Configuration.GetConnectionString("Users")));
@@ -88,8 +104,6 @@ namespace InternetId.Server
             });
             services.Configure<PwnedPasswordsClientOptions>(Configuration.GetSection("PwnedPasswordsClient"));
             services.Configure<PwnedPasswordValidatorOptions>(Configuration.GetSection("PwnedPasswordValidator"));
-            services.Configure<SmtpEmailSenderOptions>(Configuration.GetSection("SmtpEmailSender"));
-            services.AddScoped<IEmailSender, SmtpEmailSender>();
 
             services.AddOpenIddict()
 

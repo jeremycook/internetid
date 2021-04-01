@@ -1,7 +1,7 @@
 ﻿#nullable enable
-namespace InternetId.Server.Areas.Identity
+namespace InternetId.Common.Email
 {
-    public class SmtpEmailSenderOptions
+    public class SmtpEmailerOptions
     {
         public string Host { get; set; } = null!;
         public int? Port { get; set; }

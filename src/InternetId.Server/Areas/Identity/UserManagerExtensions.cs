@@ -1,4 +1,5 @@
 ﻿using InternetId.Users.Data;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 
 namespace Microsoft.AspNetCore.Identity
