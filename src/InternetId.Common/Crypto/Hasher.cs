@@ -9,22 +9,33 @@ namespace InternetId.Common.Crypto
 {
     public class Hasher
     {
-        // 100K takes about 0.02 seconds
-        private const int minimumIterations = 100_000;
-        // 10 million takes about 2 seconds
-        private const int maximumIterations = 10_000_000;
+        /// <summary>
+        /// RFC2898 using SHA256.
+        /// </summary>
+        private const string rfc2898 = "rfc2898";
         private const int saltBytes = 16;
         private const int keyBytes = 32;
+        /// <summary>
+        /// 100K iterations take about 0.02 seconds.
+        /// </summary>
+        private const int minimumIterations = 100_000;
+        /// <summary>
+        /// 10 million iterations take about 2 seconds.
+        /// </summary>
+        private const int maximumIterations = 10_000_000;
+        /// <summary>
+        /// The number of iterations is partially based on an assumption about the resources
+        /// an attacker would have access to. The attack factor multiplies the current hardware
+        /// used for deriving a key by some value like 1000.
+        /// </summary>
+        private const int attackFactor = 1000;
 
-        private const string rfc2898 = "rfc2898";
-
+        private static readonly Dictionary<int, int> entropyToIterations = new Dictionary<int, int>();
         private static readonly JsonSerializerOptions jsonSerializerOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         };
-
-        private static readonly Dictionary<int, int> entropyToIterations = new Dictionary<int, int>();
 
         private readonly DateTimeOffset utcNow;
 
@@ -33,11 +44,25 @@ namespace InternetId.Common.Crypto
             utcNow = DateTimeOffset.UtcNow;
         }
 
-        public Hasher(DateTimeOffset utcNow)
+        /// <summary>
+        /// Support testing
+        /// </summary>
+        /// <param name="utcNow"></param>
+        private Hasher(DateTimeOffset utcNow)
         {
             this.utcNow = utcNow;
         }
 
+        /// <summary>
+        /// WARNING: Public-internal API, can change at anytime.
+        /// </summary>
+        /// <param name="utcNow"></param>
+        /// <returns></returns>
+        [Obsolete("Public-internal API, can change at anytime.")]
+        public static Hasher CreateTestHasher(DateTimeOffset utcNow)
+        {
+            return new Hasher(utcNow: utcNow);
+        }
 
         public string Hash(string password, double combinations, TimeSpan lifespan)
         {
@@ -94,22 +119,25 @@ namespace InternetId.Common.Crypto
         /// <returns></returns>
         public string Hash(string password, double passwordCombinations, byte[] salt, string algorithm, DateTimeOffset notBefore, DateTimeOffset notAfter)
         {
-            var sw = new Stopwatch();
+            // The total time an adversary would have to brute force a hash.
+            double daysToAttack = utcNow >= notAfter ? 0 : (notAfter - utcNow).TotalDays;
 
-            int passwordEntropy = (int)Math.Log(passwordCombinations, 2);
-            // Lower bound password combinations based on bits of entropy
-            passwordCombinations = Math.Pow(2, passwordEntropy);
+            int complexityEntropy = (int)Math.Log(passwordCombinations, 2);
 
-            if (!entropyToIterations.TryGetValue(passwordEntropy, out int iterations))
+            int timeComplexityEntropy = (int)Math.Log(daysToAttack, 2) + complexityEntropy;
+
+            if (!entropyToIterations.TryGetValue(timeComplexityEntropy, out int iterations))
             {
                 iterations = minimumIterations;
             }
 
-            // The total time an adversary would have to brute force a hash.
-            TimeSpan lifespan = notAfter - utcNow;
+            // Apply a step function to password combinations based on bits of entropy
+            passwordCombinations = Math.Pow(2, complexityEntropy);
 
-            byte[] key;
-            do
+            var sw = new Stopwatch();
+
+            byte[] key = null;
+            for (int i = 0; i < 5; i++)
             {
                 sw.Restart();
                 key = CalculateKey(password, salt, algorithm, iterations, notBefore, notAfter);
@@ -124,26 +152,30 @@ namespace InternetId.Common.Crypto
                 // Estimated days to brute force the hash with the current hardware.
                 double daysToBruteForce = passwordCombinations * sw.Elapsed.TotalDays;
 
-                // Allow for up to 1000 times the compute of the current hardware.
-                double ratioOfLifespanVsBruteForce = 1000 * lifespan.TotalDays / daysToBruteForce;
+                // Allow for more powerful hardware with the compute multiplier current hardware.
+                double ratioOfLifespanVsBruteForce = attackFactor * daysToAttack / daysToBruteForce;
 
                 if (ratioOfLifespanVsBruteForce > 1)
                 {
                     // Increase iterations to compensate and try again.
                     iterations = (int)Math.Min(maximumIterations, Math.Max(minimumIterations, iterations * ratioOfLifespanVsBruteForce));
 
-                    if (!entropyToIterations.TryGetValue(passwordEntropy, out int currentIterations) || currentIterations < iterations)
+                    if (!entropyToIterations.TryGetValue(timeComplexityEntropy, out int currentIterations) || currentIterations < iterations)
                     {
                         // Cache to save time recalculating in the future.
-                        entropyToIterations[passwordEntropy] = iterations;
+                        entropyToIterations[timeComplexityEntropy] = iterations;
                     }
                 }
                 else
                 {
                     break;
                 }
+            }
 
-            } while (true);
+            if (key == null)
+            {
+                throw new NullReferenceException($"'{nameof(key)}' is null.");
+            }
 
             return JsonSerializer.Serialize(new Hash(key, algorithm, salt, iterations, notBefore, notAfter), jsonSerializerOptions);
         }
