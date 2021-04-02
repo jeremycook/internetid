@@ -11,7 +11,7 @@ namespace InternetId.Common.Crypto
     {
         // 100K takes about 0.02 seconds
         private const int minimumIterations = 100_000;
-        // 10 million takes about 1.5 seconds
+        // 10 million takes about 2 seconds
         private const int maximumIterations = 10_000_000;
         private const int saltBytes = 16;
         private const int keyBytes = 32;
