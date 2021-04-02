@@ -120,11 +120,11 @@ namespace InternetId.Common.Crypto
         public string Hash(string password, double passwordCombinations, byte[] salt, string algorithm, DateTimeOffset notBefore, DateTimeOffset notAfter)
         {
             // The total time an adversary would have to brute force a hash.
-            double daysToAttack = utcNow >= notAfter ? 0 : (notAfter - utcNow).TotalDays;
+            double daysAvailableToAttack = utcNow >= notAfter ? 0 : (notAfter - utcNow).TotalDays;
 
             int complexityEntropy = (int)Math.Log(passwordCombinations, 2);
 
-            int timeComplexityEntropy = (int)Math.Log(daysToAttack, 2) + complexityEntropy;
+            int timeComplexityEntropy = (int)Math.Log(daysAvailableToAttack, 2) + complexityEntropy;
 
             if (!entropyToIterations.TryGetValue(timeComplexityEntropy, out int iterations))
             {
@@ -152,13 +152,12 @@ namespace InternetId.Common.Crypto
                 // Estimated days to brute force the hash with the current hardware.
                 double daysToBruteForce = passwordCombinations * sw.Elapsed.TotalDays;
 
-                // Allow for more powerful hardware with the compute multiplier current hardware.
-                double ratioOfLifespanVsBruteForce = attackFactor * daysToAttack / daysToBruteForce;
+                double iterationBooster = attackFactor * daysAvailableToAttack / daysToBruteForce;
 
-                if (ratioOfLifespanVsBruteForce > 1)
+                if (iterationBooster > 1)
                 {
                     // Increase iterations to compensate and try again.
-                    iterations = (int)Math.Min(maximumIterations, Math.Max(minimumIterations, iterations * ratioOfLifespanVsBruteForce));
+                    iterations = (int)Math.Min(maximumIterations, Math.Max(minimumIterations, iterations * iterationBooster));
 
                     if (!entropyToIterations.TryGetValue(timeComplexityEntropy, out int currentIterations) || currentIterations < iterations)
                     {

@@ -1,6 +1,7 @@
 using InternetId.Common.Crypto;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Diagnostics;
 
 namespace InternetId.Tests
 {
@@ -11,8 +12,8 @@ namespace InternetId.Tests
 
         private static readonly DateTimeOffset notBefore = DateTimeOffset.FromUnixTimeSeconds(1617320388);
         private static readonly DateTimeOffset notAfter1Hour = notBefore.AddHours(1);
-        private static readonly DateTimeOffset notAfter1Year = notBefore.AddYears(1);
         private static readonly DateTimeOffset notAfter10Years = notBefore.AddYears(10);
+        private static readonly DateTimeOffset notAfter100Years = notBefore.AddYears(100);
 
         private static readonly DateTimeOffset validNow = notBefore.AddMinutes(30);
 
@@ -67,7 +68,7 @@ namespace InternetId.Tests
         [TestMethod]
         public void Hash_1_hour_6_letter_pin()
         {
-            string hashPin = validHasher.Hash("abcdef", (long)Math.Pow(26, 6), salt, rfc2898, notBefore, notAfter1Hour);
+            string hashPin = validHasher.Hash("abcdef", Math.Pow(26, 6), salt, rfc2898, notBefore, notAfter1Hour);
 
             Assert.AreEqual(
                 "{\"k\":\"jU51R+XgHuaOza3elEnSX73S2OeMOVdJ0jZ+j2p9ivg=\",\"a\":\"rfc2898\",\"s\":\"fH6CQViPiFl9K9I2OEVSRg==\",\"i\":100000,\"nb\":\"2021-04-01T23:39:48+00:00\",\"na\":\"2021-04-02T00:39:48+00:00\"}",
@@ -88,17 +89,11 @@ namespace InternetId.Tests
         [TestMethod]
         public void Hash_10_year_9_alphanumeric_password()
         {
-            string hashPassword = validHasher.Hash("abcd56789", (long)Math.Pow(36, 9), salt, rfc2898, notBefore, notAfter10Years);
+            string hashPassword = validHasher.Hash("abcd56789", Math.Pow(36, 9), salt, rfc2898, notBefore, notAfter10Years);
 
             Assert.AreEqual(
                 "{\"k\":\"NRu/iHjD0LLQ3YbrbJJ7H/0u0+zidisjMJp00AbMm2Q=\",\"a\":\"rfc2898\",\"s\":\"fH6CQViPiFl9K9I2OEVSRg==\",\"i\":100000,\"nb\":\"2021-04-01T23:39:48+00:00\",\"na\":\"2031-04-01T23:39:48+00:00\"}",
                 hashPassword);
-        }
-
-        [TestMethod]
-        public void Hash_1_year_9_alphanumeric_password()
-        {
-            string hashPassword = validHasher.Hash("abcd56789", (long)Math.Pow(36, 9), salt, rfc2898, notBefore, notAfter1Year);
         }
 
         [TestMethod]
@@ -110,6 +105,24 @@ namespace InternetId.Tests
             Assert.AreEqual(HasherVerificationResult.Valid, validHasher.Verify("abcd56789", hashPassword));
             Assert.AreEqual(HasherVerificationResult.Inactive, inactiveHasher.Verify("abcd56789", hashPassword));
             Assert.AreEqual(HasherVerificationResult.Expired, expiredHasher.Verify("abcd56789", hashPassword));
+        }
+
+        [TestMethod]
+        public void Hash_caches_iterations()
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            Hasher hasher = Hasher.CreateTestHasher(utcNow: validNow);
+#pragma warning restore CS0618 // Type or member is obsolete
+
+            var sw = Stopwatch.StartNew();
+            hasher.Hash("abcd56789", Math.Pow(36, 9), salt, rfc2898, notBefore, notAfter100Years);
+            var firstPass = sw.ElapsedTicks;
+
+            sw.Restart();
+            hasher.Hash("abcd56789", Math.Pow(36, 9), salt, rfc2898, notBefore, notAfter100Years);
+            var secondPass = sw.ElapsedTicks;
+
+            Assert.IsTrue(firstPass > 1.5 * secondPass, "In this case the first pass should always take longer than the second pass due to caching.");
         }
     }
 }
