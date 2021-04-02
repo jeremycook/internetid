@@ -30,7 +30,7 @@ namespace InternetId.Common.Crypto
         /// </summary>
         private const int attackFactor = 1000;
 
-        private static readonly Dictionary<int, int> entropyToIterations = new Dictionary<int, int>();
+        private static readonly Dictionary<int, int> timeComplexityToIterations = new Dictionary<int, int>();
         private static readonly JsonSerializerOptions jsonSerializerOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
@@ -120,23 +120,26 @@ namespace InternetId.Common.Crypto
         public string Hash(string password, double passwordCombinations, byte[] salt, string algorithm, DateTimeOffset notBefore, DateTimeOffset notAfter)
         {
             // The total time an adversary would have to brute force a hash.
-            double daysAvailableToAttack = utcNow >= notAfter ? 0 : (notAfter - utcNow).TotalDays;
+            double hoursAvailableToAttack = utcNow >= notAfter ? 1 : Math.Max(1, Math.Ceiling((notAfter - utcNow).TotalHours));
 
-            int complexityEntropy = (int)Math.Log(passwordCombinations, 2);
+            int entropy = (int)Math.Log(passwordCombinations, 2);
 
-            int timeComplexityEntropy = (int)Math.Log(daysAvailableToAttack, 2) + complexityEntropy;
+            // Apply a step function to password combinations based on bits of entropy
+            passwordCombinations = Math.Pow(2, entropy);
 
-            if (!entropyToIterations.TryGetValue(timeComplexityEntropy, out int iterations))
+            // Calculate time-complexity
+            // The more time that is available to attack means that either entropy needs to go up or iterations.
+            // Subtracting logs is like dividing the original values but avoids exceptions on really big results.
+            int timeComplexity = (int)Math.Sqrt(hoursAvailableToAttack * entropy);
+
+            if (!timeComplexityToIterations.TryGetValue(timeComplexity, out int iterations))
             {
                 iterations = minimumIterations;
             }
 
-            // Apply a step function to password combinations based on bits of entropy
-            passwordCombinations = Math.Pow(2, complexityEntropy);
-
             var sw = new Stopwatch();
 
-            byte[] key = null;
+            byte[] key = null!;
             for (int i = 0; i < 5; i++)
             {
                 sw.Restart();
@@ -150,19 +153,19 @@ namespace InternetId.Common.Crypto
                 }
 
                 // Estimated days to brute force the hash with the current hardware.
-                double daysToBruteForce = passwordCombinations * sw.Elapsed.TotalDays;
+                double hoursNeededToBruteForce = Math.Floor(passwordCombinations * sw.Elapsed.TotalHours);
 
-                double iterationBooster = attackFactor * daysAvailableToAttack / daysToBruteForce;
+                double iterationBooster = Math.Ceiling(attackFactor * hoursAvailableToAttack / hoursNeededToBruteForce);
 
                 if (iterationBooster > 1)
                 {
                     // Increase iterations to compensate and try again.
                     iterations = (int)Math.Min(maximumIterations, Math.Max(minimumIterations, iterations * iterationBooster));
 
-                    if (!entropyToIterations.TryGetValue(timeComplexityEntropy, out int currentIterations) || currentIterations < iterations)
+                    if (!timeComplexityToIterations.TryGetValue(timeComplexity, out int currentIterations) || currentIterations < iterations)
                     {
                         // Cache to save time recalculating in the future.
-                        entropyToIterations[timeComplexityEntropy] = iterations;
+                        timeComplexityToIterations[timeComplexity] = iterations;
                     }
                 }
                 else
