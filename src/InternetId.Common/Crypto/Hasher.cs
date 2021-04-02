@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -8,7 +9,10 @@ namespace InternetId.Common.Crypto
 {
     public class Hasher
     {
+        // 100K takes about 0.02 seconds
         private const int minimumIterations = 100_000;
+        // 10 million takes about 1.5 seconds
+        private const int maximumIterations = 10_000_000;
         private const int saltBytes = 16;
         private const int keyBytes = 32;
 
@@ -22,12 +26,25 @@ namespace InternetId.Common.Crypto
 
         private static readonly Dictionary<int, int> entropyToIterations = new Dictionary<int, int>();
 
-        public string Hash(string password, int passwordEntropy, TimeSpan lifespan)
+        private readonly DateTimeOffset utcNow;
+
+        public Hasher()
+        {
+            utcNow = DateTimeOffset.UtcNow;
+        }
+
+        public Hasher(DateTimeOffset utcNow)
+        {
+            this.utcNow = utcNow;
+        }
+
+
+        public string Hash(string password, double combinations, TimeSpan lifespan)
         {
             byte[] salt = new byte[saltBytes];
             RandomNumberGenerator.Fill(salt);
 
-            return Hash(password, passwordEntropy, salt, rfc2898, DateTimeOffset.UtcNow.AddSeconds(-1), DateTimeOffset.UtcNow.Add(lifespan));
+            return Hash(password, combinations, salt, rfc2898, utcNow.AddSeconds(-1), utcNow.Add(lifespan));
         }
 
         /// <summary>
@@ -41,20 +58,24 @@ namespace InternetId.Common.Crypto
         public byte[] CalculateKey(string password, byte[] salt, string algorithm, int iterations, DateTimeOffset notBefore, DateTimeOffset notAfter)
         {
             if (string.IsNullOrWhiteSpace(password)) throw new ArgumentException($"'{nameof(password)}' cannot be null or empty.", nameof(password));
-            if (salt is null || salt.Length < 16) throw new ArgumentOutOfRangeException(nameof(salt), $"'{nameof(salt)}' cannot be null or less than 16 bytes in length.");
-            if (string.IsNullOrWhiteSpace(algorithm)) throw new ArgumentException($"'{nameof(algorithm)}' cannot be null or empty.", nameof(algorithm));
-            if (iterations < minimumIterations) throw new InvalidOperationException($"The number of iterations {iterations} is less than the minimum of {minimumIterations}.");
+            if (salt is null || salt.Length < 16 || salt.All(o => o == 0)) throw new ArgumentOutOfRangeException(nameof(salt), $"'{nameof(salt)}' cannot be null, less than 16 bytes in length or only contain zeros.");
+            if (algorithm is null) throw new ArgumentNullException(nameof(algorithm));
+            if (iterations < minimumIterations) throw new ArgumentOutOfRangeException(nameof(iterations), $"The number of iterations {iterations} is less than the minimum of {minimumIterations}.");
 
             byte[] key;
 
             switch (algorithm)
             {
                 case rfc2898:
-                    Rfc2898DeriveBytes deriveBytes = new Rfc2898DeriveBytes(password: password + notBefore.ToUnixTimeMilliseconds() + notAfter.ToUnixTimeMilliseconds(), salt: salt, iterations: iterations);
+                    Rfc2898DeriveBytes deriveBytes = new Rfc2898DeriveBytes(
+                        password: password + notBefore.ToUnixTimeMilliseconds() + notAfter.ToUnixTimeMilliseconds(),
+                        salt: salt,
+                        iterations: iterations,
+                        hashAlgorithm: HashAlgorithmName.SHA256);
                     key = deriveBytes.GetBytes(keyBytes);
                     break;
                 default:
-                    throw new NotSupportedException($"The {algorithm} algorithm is not supported.");
+                    throw new ArgumentOutOfRangeException($"'{algorithm}' {nameof(algorithm)} is not valid.");
             }
 
             return key;
@@ -64,27 +85,28 @@ namespace InternetId.Common.Crypto
         /// Hash the <paramref name="password"/>, adjusting algorithm so that the key cannot easily be brute forced before it expires.
         /// </summary>
         /// <param name="password"></param>
-        /// <param name="passwordEntropy"></param>
+        /// <param name="passwordCombinations"></param>
         /// <param name="salt"></param>
         /// <param name="algorithm"></param>
         /// <param name="iterations"></param>
         /// <param name="notBefore"></param>
         /// <param name="notAfter"></param>
         /// <returns></returns>
-        public string Hash(string password, int passwordEntropy, byte[] salt, string algorithm, DateTimeOffset notBefore, DateTimeOffset notAfter)
+        public string Hash(string password, double passwordCombinations, byte[] salt, string algorithm, DateTimeOffset notBefore, DateTimeOffset notAfter)
         {
             var sw = new Stopwatch();
 
-            // Step password entropy so that the entropy-to-iterations cache clusters.
-            passwordEntropy = 10 * (int)Math.Floor((double)passwordEntropy / 10);
+            int passwordEntropy = (int)Math.Log(passwordCombinations, 2);
+            // Lower bound password combinations based on bits of entropy
+            passwordCombinations = Math.Pow(2, passwordEntropy);
 
             if (!entropyToIterations.TryGetValue(passwordEntropy, out int iterations))
             {
                 iterations = minimumIterations;
             }
 
-            // The total time an adversary would have to brute force a hash
-            TimeSpan lifespan = notAfter - DateTimeOffset.UtcNow;
+            // The total time an adversary would have to brute force a hash.
+            TimeSpan lifespan = notAfter - utcNow;
 
             byte[] key;
             do
@@ -94,13 +116,13 @@ namespace InternetId.Common.Crypto
                 sw.Stop();
 
                 // We've reached the maximum number of iterations.
-                if (iterations >= int.MaxValue)
+                if (iterations >= maximumIterations)
                 {
                     break;
                 }
 
                 // Estimated days to brute force the hash with the current hardware.
-                double daysToBruteForce = passwordEntropy * sw.Elapsed.TotalDays;
+                double daysToBruteForce = passwordCombinations * sw.Elapsed.TotalDays;
 
                 // Allow for up to 1000 times the compute of the current hardware.
                 double ratioOfLifespanVsBruteForce = 1000 * lifespan.TotalDays / daysToBruteForce;
@@ -108,7 +130,7 @@ namespace InternetId.Common.Crypto
                 if (ratioOfLifespanVsBruteForce > 1)
                 {
                     // Increase iterations to compensate and try again.
-                    iterations = (int)Math.Min(int.MaxValue, Math.Max(minimumIterations, iterations * ratioOfLifespanVsBruteForce));
+                    iterations = (int)Math.Min(maximumIterations, Math.Max(minimumIterations, iterations * ratioOfLifespanVsBruteForce));
 
                     if (!entropyToIterations.TryGetValue(passwordEntropy, out int currentIterations) || currentIterations < iterations)
                     {
@@ -145,7 +167,6 @@ namespace InternetId.Common.Crypto
 
             if (hash.Equals(rehash))
             {
-                DateTimeOffset utcNow = DateTimeOffset.UtcNow;
                 if (utcNow < notBefore)
                 {
                     return HasherVerificationResult.Inactive;

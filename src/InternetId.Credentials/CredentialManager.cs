@@ -185,7 +185,7 @@ namespace InternetId.Credentials
         private string HashSecret(string purpose, string key, string secret, string data, TimeSpan lifespan)
         {
             secret = Regex.Replace(secret, "[^0-9]+", "");
-            return passwordHasher.Hash(purpose + key + secret + data, (int)Math.Pow(10, secret.Length), lifespan);
+            return passwordHasher.Hash(purpose + key + secret + data, Math.Pow(10, secret.Length), lifespan);
         }
 
         private HasherVerificationResult VerifyHashedSecret(Credential credential, string secret)

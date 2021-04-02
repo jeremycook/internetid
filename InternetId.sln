@@ -23,6 +23,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InternetId.Common", "src\In
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InternetId.Credentials", "src\InternetId.Credentials\InternetId.Credentials.csproj", "{028D84BF-B9C2-4E16-BBCB-42B5A840AB0B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InternetId.Tests", "src\InternetId.Tests\InternetId.Tests.csproj", "{59ED85CF-26B1-436B-B9B2-D2B391CFA22B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -129,6 +131,18 @@ Global
 		{028D84BF-B9C2-4E16-BBCB-42B5A840AB0B}.Release|x64.Build.0 = Release|Any CPU
 		{028D84BF-B9C2-4E16-BBCB-42B5A840AB0B}.Release|x86.ActiveCfg = Release|Any CPU
 		{028D84BF-B9C2-4E16-BBCB-42B5A840AB0B}.Release|x86.Build.0 = Release|Any CPU
+		{59ED85CF-26B1-436B-B9B2-D2B391CFA22B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{59ED85CF-26B1-436B-B9B2-D2B391CFA22B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{59ED85CF-26B1-436B-B9B2-D2B391CFA22B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{59ED85CF-26B1-436B-B9B2-D2B391CFA22B}.Debug|x64.Build.0 = Debug|Any CPU
+		{59ED85CF-26B1-436B-B9B2-D2B391CFA22B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{59ED85CF-26B1-436B-B9B2-D2B391CFA22B}.Debug|x86.Build.0 = Debug|Any CPU
+		{59ED85CF-26B1-436B-B9B2-D2B391CFA22B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{59ED85CF-26B1-436B-B9B2-D2B391CFA22B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{59ED85CF-26B1-436B-B9B2-D2B391CFA22B}.Release|x64.ActiveCfg = Release|Any CPU
+		{59ED85CF-26B1-436B-B9B2-D2B391CFA22B}.Release|x64.Build.0 = Release|Any CPU
+		{59ED85CF-26B1-436B-B9B2-D2B391CFA22B}.Release|x86.ActiveCfg = Release|Any CPU
+		{59ED85CF-26B1-436B-B9B2-D2B391CFA22B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
