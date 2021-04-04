@@ -11,6 +11,7 @@ namespace InternetId.Credentials
             public float LifespanMinutes { get; set; } = 10;
             public float LockoutMinutes { get; set; } = 10;
             public int AttemptsPerLockout { get; set; } = 10;
+            public bool RetainAfterVerification { get; set; } = false;
         }
     }
 }

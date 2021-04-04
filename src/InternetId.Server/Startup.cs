@@ -1,13 +1,7 @@
-using InternetId.Common;
-using InternetId.Credentials;
-using InternetId.Common.Crypto;
-using InternetId.Common.Email;
 using InternetId.OpenIddict.Data;
 using InternetId.Users.Data;
-using InternetId.Users.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -15,7 +9,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using PwnedPasswords.Client;
-using PwnedPasswords.Validator;
 using System;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
@@ -32,18 +25,6 @@ namespace InternetId.Server
         {
             services.AddLogging(loggingBuilder => loggingBuilder.AddSeq());
 
-            // InternetId.Common
-            services.Configure<InternetIdOptions>(Configuration.GetSection("InternetId"));
-            services.Configure<SmtpEmailerOptions>(Configuration.GetSection("SmtpEmailer"));
-            services.AddScoped<IEmailer, SmtpEmailer>();
-            services.AddScoped<Hasher>();
-
-            // InternetId.Codes
-            services.AddInternetIdCredentials(Configuration.GetSection("Credentials"), options => options.UseNpgsql(Configuration.GetConnectionString("Credentials")));
-
-            // InternetId.User
-            services.AddScoped<VerificationService>();
-
             services.AddControllersWithViews(options =>
             {
                 options.Conventions.Add(new RouteTokenTransformerConvention(new SlugifyParameterTransformer()));
@@ -53,109 +34,12 @@ namespace InternetId.Server
                 options.Conventions.Add(new PageRouteTransformerConvention(new SlugifyParameterTransformer()));
             });
 
-
-            services.AddDbContext<UsersDbContext>(options => options
-                .UseNpgsql(Configuration.GetConnectionString("Users")));
-
-            services.AddDbContext<OpenIddictDbContext>(options => options
-                .UseNpgsql(Configuration.GetConnectionString("OpenIddict")));
-
-            services.AddDatabaseDeveloperPageExceptionFilter();
-
-            services.AddIdentity<User, IdentityRole>()
-                .AddEntityFrameworkStores<UsersDbContext>()
-                .AddDefaultTokenProviders()
-                .AddDefaultUI()
-                .AddPwnedPasswordValidator<User>();
-
-            services.Configure<IdentityOptions>(options =>
-            {
-                // Configure Identity to use the same JWT claims as OpenIddict instead
-                // of the legacy WS-Federation claims it uses by default (ClaimTypes),
-                // which saves you from doing the mapping in your authorization controller.
-                options.ClaimsIdentity.UserNameClaimType = Claims.Name;
-                options.ClaimsIdentity.UserIdClaimType = Claims.Subject;
-                options.ClaimsIdentity.RoleClaimType = Claims.Role;
-
-                // Keep it simple.
-                options.SignIn.RequireConfirmedAccount = true;
-
-                // The username and email address are two different values.
-                // The username may only contain lowercase letters and numbers.
-                options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyz0123456789";
-                // Require unique email to reduce the likelihood of confusing users and to keep the UI simpler.
-                options.User.RequireUniqueEmail = true;
-
-                // Following NIST Special Publication 800-63B
-                // Using https://github.com/andrewlock/PwnedPasswords to check for breached passwords.
-                // NIST Special Publication 800-63B: "[require] user-chosen memorized secrets to be a minimum of 8 characters long"
-                options.Password.RequiredLength = 8;
-                options.Password.RequiredUniqueChars = 4;
-                options.Password.RequireDigit = false;
-                options.Password.RequireLowercase = false;
-                options.Password.RequireNonAlphanumeric = false;
-                options.Password.RequireUppercase = false;
-                // NIST Special Publication 800-63B: "Allow at least 10 entry attempts for authenticators requiring the entry of the authenticator output by the user"
-                options.Lockout.MaxFailedAccessAttempts = 10;
-                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(10);
-                options.Lockout.AllowedForNewUsers = true;
-            });
-            services.Configure<PwnedPasswordsClientOptions>(Configuration.GetSection("PwnedPasswordsClient"));
-            services.Configure<PwnedPasswordValidatorOptions>(Configuration.GetSection("PwnedPasswordValidator"));
-
-            services.AddOpenIddict()
-
-                // Register the OpenIddict core components.
-                .AddCore(options =>
-                {
-                    // Configure OpenIddict to use the Entity Framework Core stores and models.
-                    // Note: call ReplaceDefaultEntities() to replace the default OpenIddict entities.
-                    options.UseEntityFrameworkCore()
-                           .UseDbContext<OpenIddictDbContext>();
-                })
-
-                // Register the OpenIddict server components.
-                .AddServer(options =>
-                {
-                    // Enable the authorization, logout, token and userinfo endpoints.
-                    options.SetAuthorizationEndpointUris("/connect/authorize")
-                           .SetLogoutEndpointUris("/connect/logout")
-                           .SetTokenEndpointUris("/connect/token")
-                           .SetUserinfoEndpointUris("/connect/userinfo");
-
-                    // Mark the "email", "profile" and "roles" scopes as supported scopes.
-                    options.RegisterScopes(Scopes.Email, Scopes.Profile, Scopes.Roles);
-
-                    // Note: this sample only uses the authorization code flow but you can enable
-                    // the other flows if you need to support implicit, password or client credentials.
-                    options.AllowAuthorizationCodeFlow();
-
-                    // Register the signing and encryption credentials.
-                    options.AddDevelopmentEncryptionCertificate()
-                           .AddDevelopmentSigningCertificate();
-
-                    // Register the ASP.NET Core host and configure the ASP.NET Core-specific options.
-                    options.UseAspNetCore()
-                           .EnableAuthorizationEndpointPassthrough()
-                           .EnableLogoutEndpointPassthrough()
-                           .EnableTokenEndpointPassthrough()
-                           .EnableUserinfoEndpointPassthrough()
-                           .EnableStatusCodePagesIntegration();
-                })
-
-                // Register the OpenIddict validation components.
-                .AddValidation(options =>
-                {
-                    // Import the configuration from the local OpenIddict server instance.
-                    options.UseLocalServer();
-
-                    // Register the ASP.NET Core host.
-                    options.UseAspNetCore();
-                });
-
-            // Register the worker responsible of seeding the database with the sample clients.
-            // Note: in a real world application, this step should be part of a setup script.
-            services.AddHostedService<StartupWorker>();
+            services.AddInternetId(Configuration.GetSection("InternetId"));
+            services.AddInternetIdHasher();
+            services.AddInternetIdSmtpEmailer(Configuration.GetSection("SmtpEmailer"));
+            services.AddInternetIdCredentials(Configuration.GetSection("Credentials"), options => options.UseNpgsql(Configuration.GetConnectionString("Credentials")));
+            services.AddInternetIdUsers(Configuration.GetSection("PwnedPasswordsClient"), options => options.UseNpgsql(Configuration.GetConnectionString("Users")));
+            services.AddInternetIdServer(options => options.UseNpgsql(Configuration.GetConnectionString("OpenIddict")));
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)

@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -12,6 +13,8 @@ namespace InternetId.Credentials
 {
     public class CredentialManager : IDisposable
     {
+        private const string shortcodeTokens = "abcdefghijklmnopqrstuvwxyz";
+
         private readonly Hasher passwordHasher;
         private readonly ILogger<CredentialManager> logger;
         private readonly IOptions<CredentialsOptions> userCodeOptions;
@@ -32,20 +35,30 @@ namespace InternetId.Credentials
             scope?.Dispose();
         }
 
-        public async Task<string> GenerateCodeAsync(string purpose, string key, string data = "")
+        /// <summary>
+        /// Returns a random 6 letter shortcode after creating a new credential or updates the matching credential.
+        /// </summary>
+        /// <param name="purpose"></param>
+        /// <param name="key"></param>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        public async Task<string> CreateShortcodeAsync(string purpose, string key, string data = "")
         {
-            string secret = RandomNumberGenerator.GetInt32(1000000, 10000000).ToString().Substring(1);
-            return await CreateCredentialAsync(purpose, key, secret, data);
+            string secret = string.Concat(Enumerable.Range(0, 6).Select(i => shortcodeTokens[RandomNumberGenerator.GetInt32(0, shortcodeTokens.Length)]));
+
+            await SetCredentialAsync(purpose, key, secret, data);
+
+            return secret;
         }
 
         /// <summary>
-        /// Generates a new credential or updates the matching credential if one already exists.
+        /// Creates a new credential or updates the matching credential if one already exists.
         /// </summary>
         /// <param name="user"></param>
         /// <param name="purpose"></param>
         /// <param name="data"></param>
         /// <returns></returns>
-        public async Task<string> CreateCredentialAsync(string purpose, string key, string secret, string data)
+        public async Task SetCredentialAsync(string purpose, string key, string secret, string data = "")
         {
             if (string.IsNullOrWhiteSpace(purpose)) throw new ArgumentException($"'{nameof(purpose)}' cannot be null or empty.", nameof(purpose));
             if (string.IsNullOrWhiteSpace(key)) throw new ArgumentException($"'{nameof(key)}' cannot be null or empty.", nameof(key));
@@ -54,14 +67,14 @@ namespace InternetId.Credentials
             data ??= string.Empty;
 
             var purposeOptions = GetPurposeOptions(purpose);
-            string hashedCode = HashSecret(purpose, key, secret, data, TimeSpan.FromMinutes(purposeOptions.LifespanMinutes));
+            string hash = HashSecret(purpose, key, secret, data, TimeSpan.FromMinutes(purposeOptions.LifespanMinutes));
 
             var userCode = await FindCredentialAsync(purpose, key);
             if (userCode != null)
             {
                 // Reset the credential while maintaining lockout information.
                 userCode.Data = data;
-                userCode.HashedCode = hashedCode;
+                userCode.Hash = hash;
                 await db.SaveChangesAsync();
 
                 logger.LogInformation("Reset {Purpose} credential", purpose);
@@ -76,22 +89,36 @@ namespace InternetId.Credentials
                     Data = data,
                     LockedOutUntil = null,
                     Attempts = 0,
-                    HashedCode = hashedCode,
+                    Hash = hash,
                 };
                 db.Credentials.Add(userCode);
                 await db.SaveChangesAsync();
 
                 logger.LogInformation("Created {Purpose} credential", purpose);
             }
+        }
 
-            return secret;
+        /// <summary>
+        /// Verifies a 6 letter shortcode, automatically removing invalid characters before verifying.
+        /// </summary>
+        /// <param name="purpose"></param>
+        /// <param name="key"></param>
+        /// <param name="shortcode"></param>
+        /// <returns></returns>
+        public async Task<CredentialResult> VerifyShortcodeAsync(string purpose, string key, string shortcode)
+        {
+            if (string.IsNullOrWhiteSpace(shortcode)) throw new ArgumentException($"'{nameof(shortcode)}' cannot be null or whitespace.", nameof(shortcode));
+
+            var secret = string.Concat(shortcode.Where(ch => shortcodeTokens.Contains(ch)));
+
+            return await VerifySecretAsync(purpose, key, secret);
         }
 
         public async Task<CredentialResult> VerifySecretAsync(string purpose, string key, string secret)
         {
-            if (string.IsNullOrWhiteSpace(purpose)) throw new ArgumentException($"'{nameof(purpose)}' cannot be null or empty.", nameof(purpose));
-            if (string.IsNullOrWhiteSpace(key)) throw new ArgumentException($"'{nameof(key)}' cannot be null or empty.", nameof(key));
-            if (string.IsNullOrWhiteSpace(secret)) throw new ArgumentException($"'{nameof(secret)}' cannot be null or empty.", nameof(secret));
+            if (string.IsNullOrWhiteSpace(purpose)) throw new ArgumentException($"'{nameof(purpose)}' cannot be null or whitespace.", nameof(purpose));
+            if (string.IsNullOrWhiteSpace(key)) throw new ArgumentException($"'{nameof(key)}' cannot be null or whitespace.", nameof(key));
+            if (string.IsNullOrWhiteSpace(secret)) throw new ArgumentException($"'{nameof(secret)}' cannot be null or whitespace.", nameof(secret));
 
             var credential = await FindCredentialAsync(purpose, key);
             var purposeOptions = GetPurposeOptions(purpose);
@@ -153,9 +180,10 @@ namespace InternetId.Credentials
 
                 case HasherVerificationResult.Valid:
 
-                    // Remove the record, no reason to keep it around.
-                    db.Credentials.Remove(credential);
-                    await db.SaveChangesAsync();
+                    if (!purposeOptions.RetainAfterVerification)
+                    {
+                        await RemoveCredentialAsync(purpose, key);
+                    }
 
                     logger.LogInformation("Valid {Purpose} credential", purpose);
                     return CredentialResult.Valid(credential);
@@ -164,6 +192,16 @@ namespace InternetId.Credentials
                 default:
 
                     throw new NotSupportedException($"The {verificationResult} HasherResult is not supported.");
+            }
+        }
+
+        public async Task RemoveCredentialAsync(string purpose, string key)
+        {
+            if (await FindCredentialAsync(purpose, key) is Credential credential)
+            {
+                db.Credentials.Remove(credential);
+                await db.SaveChangesAsync();
+                logger.LogInformation("Removed {Purpose} credential", purpose);
             }
         }
 
@@ -184,14 +222,12 @@ namespace InternetId.Credentials
 
         private string HashSecret(string purpose, string key, string secret, string data, TimeSpan lifespan)
         {
-            secret = Regex.Replace(secret, "[^0-9]+", "");
             return passwordHasher.Hash(purpose + key + secret + data, Math.Pow(10, secret.Length), lifespan);
         }
 
         private HasherVerificationResult VerifyHashedSecret(Credential credential, string secret)
         {
-            secret = Regex.Replace(secret, "[^0-9]+", "");
-            return passwordHasher.Verify(credential.Purpose + credential.Key + secret + credential.Data, credential.HashedCode);
+            return passwordHasher.Verify(credential.Purpose + credential.Key + secret + credential.Data, credential.Hash);
         }
     }
 }

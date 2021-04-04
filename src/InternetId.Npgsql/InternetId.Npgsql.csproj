@@ -5,8 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\InternetId.OpenIddict\InternetId.OpenIddict.csproj" />
-    <ProjectReference Include="..\InternetId.Users\InternetId.Users.csproj" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="5.0.2" />
   </ItemGroup>
 
 </Project>

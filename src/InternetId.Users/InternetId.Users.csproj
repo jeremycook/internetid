@@ -1,17 +1,20 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="5.0.4" />
-    <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="5.0.4" />
+    <PackageReference Include="PwnedPasswords.Client" Version="1.2.0" />
     <PackageReference Include="System.Text.Json" Version="5.0.1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\InternetId.Credentials\InternetId.Credentials.csproj" />
+    <ProjectReference Include="..\InternetId.EntityFrameworkCore\InternetId.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\InternetId.Npgsql\InternetId.Npgsql.csproj" />
   </ItemGroup>
 
 </Project>

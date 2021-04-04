@@ -1,20 +1,31 @@
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using InternetId.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace InternetId.Users.Data
 {
-    public class UsersDbContext : IdentityDbContext<User>
+    public class UsersDbContext : DbContext
     {
         public UsersDbContext(DbContextOptions<UsersDbContext> options)
             : base(options) { }
 
-        protected override void OnModelCreating(ModelBuilder builder)
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            base.OnModelCreating(builder);
-            foreach (var entityType in builder.Model.GetEntityTypes())
+            base.OnModelCreating(modelBuilder);
+
+            if (modelBuilder.Entity<User>() is var user)
             {
-                entityType.SetTableName(entityType.GetTableName().Replace("AspNet", ""));
+                user.Property(o => o.LowercaseUsername).HasComputedColumnSql("lower(username)", stored: true);
+                user.HasIndex(o => o.LowercaseUsername).IsUnique();
+
+                user.Property(o => o.LowercaseEmail).HasComputedColumnSql("lower(email)", stored: true);
+                user.HasIndex(o => o.LowercaseEmail);
+
+                user.Property(o => o.Created).HasDefaultValueSql("current_timestamp");
             }
+
+            modelBuilder.ApplyUnderscoreNames();
         }
+
+        public DbSet<User> Users => Set<User>();
     }
 }

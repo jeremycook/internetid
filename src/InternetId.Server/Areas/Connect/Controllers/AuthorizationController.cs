@@ -6,12 +6,12 @@
 
 using InternetId.Server.Areas.Connect.ViewModels;
 using InternetId.Server.Helpers;
-using InternetId.Users.Data;
+using InternetId.Server.Services;
+using InternetId.Users.Services;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
@@ -29,27 +29,27 @@ namespace InternetId.Server.Areas.Connect.Controllers
     [Area("Connect")]
     public class AuthorizationController : Controller
     {
-        private readonly IOpenIddictApplicationManager _applicationManager;
-        private readonly IOpenIddictAuthorizationManager _authorizationManager;
-        private readonly IOpenIddictScopeManager _scopeManager;
-        private readonly SignInManager<User> _signInManager;
-        private readonly UserManager<User> _userManager;
-        private readonly ILogger<AuthorizationController> _logger;
+        private readonly IOpenIddictApplicationManager applicationManager;
+        private readonly IOpenIddictAuthorizationManager authorizationManager;
+        private readonly IOpenIddictScopeManager scopeManager;
+        private readonly UserFinder userManager;
+        private readonly SignInManager signInManager;
+        private readonly ILogger<AuthorizationController> logger;
 
         public AuthorizationController(
             IOpenIddictApplicationManager applicationManager,
             IOpenIddictAuthorizationManager authorizationManager,
             IOpenIddictScopeManager scopeManager,
-            SignInManager<User> signInManager,
-            UserManager<User> userManager,
+            UserFinder userManager,
+            SignInManager signInManager,
             ILogger<AuthorizationController> logger)
         {
-            _applicationManager = applicationManager;
-            _authorizationManager = authorizationManager;
-            _scopeManager = scopeManager;
-            _signInManager = signInManager;
-            _userManager = userManager;
-            _logger = logger;
+            this.applicationManager = applicationManager;
+            this.authorizationManager = authorizationManager;
+            this.scopeManager = scopeManager;
+            this.userManager = userManager;
+            this.signInManager = signInManager;
+            this.logger = logger;
         }
 
         [HttpGet("~/connect/authorize")]
@@ -62,8 +62,8 @@ namespace InternetId.Server.Areas.Connect.Controllers
 
             // Retrieve the user principal stored in the authentication cookie.
             // If it can't be extracted, redirect the user to the login page.
-            var result = await HttpContext.AuthenticateAsync(IdentityConstants.ApplicationScheme);
-            if (result == null || !result.Succeeded)
+            var result = await HttpContext.AuthenticateAsync(signInManager.Scheme);
+            if (result == null || !result.Succeeded || result.Principal == null)
             {
                 // If the client application requested promptless authentication,
                 // return an error indicating that the user is not logged in.
@@ -71,7 +71,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 {
                     return Forbid(
                         authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
-                        properties: new AuthenticationProperties(new Dictionary<string, string>
+                        properties: new AuthenticationProperties(new Dictionary<string, string?>
                         {
                             [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.LoginRequired,
                             [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The user is not logged in."
@@ -79,11 +79,13 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 }
 
                 return Challenge(
-                    authenticationSchemes: IdentityConstants.ApplicationScheme,
+                    authenticationSchemes: signInManager.Scheme,
                     properties: new AuthenticationProperties
                     {
-                        RedirectUri = Request.PathBase + Request.Path + QueryString.Create(
-                            Request.HasFormContentType ? Request.Form.ToList() : Request.Query.ToList())
+                        RedirectUri =
+                            Request.PathBase +
+                            Request.Path +
+                            QueryString.Create(Request.HasFormContentType ? Request.Form.ToList() : Request.Query.ToList())
                     });
             }
 
@@ -102,23 +104,24 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 parameters.Add(KeyValuePair.Create(Parameters.Prompt, new StringValues(prompt)));
 
                 return Challenge(
-                    authenticationSchemes: IdentityConstants.ApplicationScheme,
+                    authenticationSchemes: signInManager.Scheme,
                     properties: new AuthenticationProperties
                     {
                         RedirectUri = Request.PathBase + Request.Path + QueryString.Create(parameters)
                     });
             }
 
-            // If a max_age parameter was provided, ensure that the cookie is not too old.
+            // If a maxage parameter was provided, ensure that the cookie is not too old.
             // If it's too old, automatically redirect the user agent to the login page.
-            if (request.MaxAge != null && result.Properties?.IssuedUtc != null &&
+            if (request.MaxAge != null &&
+                result.Properties?.IssuedUtc != null &&
                 DateTimeOffset.UtcNow - result.Properties.IssuedUtc > TimeSpan.FromSeconds(request.MaxAge.Value))
             {
                 if (request.HasPrompt(Prompts.None))
                 {
                     return Forbid(
                         authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
-                        properties: new AuthenticationProperties(new Dictionary<string, string>
+                        properties: new AuthenticationProperties(new Dictionary<string, string?>
                         {
                             [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.LoginRequired,
                             [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The user is not logged in."
@@ -126,42 +129,44 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 }
 
                 return Challenge(
-                    authenticationSchemes: IdentityConstants.ApplicationScheme,
+                    authenticationSchemes: signInManager.Scheme,
                     properties: new AuthenticationProperties
                     {
-                        RedirectUri = Request.PathBase + Request.Path + QueryString.Create(
-                            Request.HasFormContentType ? Request.Form.ToList() : Request.Query.ToList())
+                        RedirectUri =
+                            Request.PathBase +
+                            Request.Path +
+                            QueryString.Create(Request.HasFormContentType ? Request.Form.ToList() : Request.Query.ToList())
                     });
             }
 
             // Retrieve the profile of the logged in user.
-            var user = await _userManager.GetUserAsync(result.Principal);
+            var user = await userManager.FindUserAsync(result.Principal);
             if (user == null)
             {
-                _logger.LogWarning("The user details cannot be retrieved.");
+                logger.LogWarning("The user details cannot be retrieved.");
                 return LocalRedirect("~/");
             }
 
             // Retrieve the application details from the database.
-            var application = await _applicationManager.FindByClientIdAsync(request.ClientId) ??
+            var application = await applicationManager.FindByClientIdAsync(request.ClientId) ??
                 throw new InvalidOperationException("Details concerning the calling client application cannot be found.");
 
             // Retrieve the permanent authorizations associated with the user and the calling client application.
-            var authorizations = await _authorizationManager.FindAsync(
-                subject: await _userManager.GetUserIdAsync(user),
-                client: await _applicationManager.GetIdAsync(application),
+            var authorizations = await authorizationManager.FindAsync(
+                subject: user.Id.ToString(),
+                client: await applicationManager.GetIdAsync(application),
                 status: Statuses.Valid,
                 type: AuthorizationTypes.Permanent,
                 scopes: request.GetScopes()).ToListAsync();
 
-            switch (await _applicationManager.GetConsentTypeAsync(application))
+            switch (await applicationManager.GetConsentTypeAsync(application))
             {
                 // If the consent is external (e.g when authorizations are granted by a sysadmin),
                 // immediately return an error if no authorization can be found in the database.
                 case ConsentTypes.External when !authorizations.Any():
                     return Forbid(
                         authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
-                        properties: new AuthenticationProperties(new Dictionary<string, string>
+                        properties: new AuthenticationProperties(new Dictionary<string, string?>
                         {
                             [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.ConsentRequired,
                             [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] =
@@ -173,28 +178,28 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 case ConsentTypes.Implicit:
                 case ConsentTypes.External when authorizations.Any():
                 case ConsentTypes.Explicit when authorizations.Any() && !request.HasPrompt(Prompts.Consent):
-                    var principal = await _signInManager.CreateUserPrincipalAsync(user);
+                    var principal = await signInManager.CreateClaimsPrincipalAsync(user);
 
                     // Note: in this sample, the granted scopes match the requested scope
                     // but you may want to allow the user to uncheck specific scopes.
                     // For that, simply restrict the list of scopes before calling SetScopes.
                     principal.SetScopes(request.GetScopes());
-                    principal.SetResources(await _scopeManager.ListResourcesAsync(principal.GetScopes()).ToListAsync());
+                    principal.SetResources(await scopeManager.ListResourcesAsync(principal.GetScopes()).ToListAsync());
 
                     // Automatically create a permanent authorization to avoid requiring explicit consent
                     // for future authorization or token requests containing the same scopes.
                     var authorization = authorizations.LastOrDefault();
                     if (authorization == null)
                     {
-                        authorization = await _authorizationManager.CreateAsync(
+                        authorization = await authorizationManager.CreateAsync(
                             principal: principal,
-                            subject: await _userManager.GetUserIdAsync(user),
-                            client: await _applicationManager.GetIdAsync(application),
+                            subject: user.Id.ToString(),
+                            client: await applicationManager.GetIdAsync(application),
                             type: AuthorizationTypes.Permanent,
                             scopes: principal.GetScopes());
                     }
 
-                    principal.SetAuthorizationId(await _authorizationManager.GetIdAsync(authorization));
+                    principal.SetAuthorizationId(await authorizationManager.GetIdAsync(authorization));
 
                     foreach (var claim in principal.Claims)
                     {
@@ -209,7 +214,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 case ConsentTypes.Systematic when request.HasPrompt(Prompts.None):
                     return Forbid(
                         authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
-                        properties: new AuthenticationProperties(new Dictionary<string, string>
+                        properties: new AuthenticationProperties(new Dictionary<string, string?>
                         {
                             [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.ConsentRequired,
                             [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] =
@@ -220,7 +225,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 default:
                     return View(new AuthorizeViewModel
                     {
-                        ApplicationName = await _applicationManager.GetDisplayNameAsync(application),
+                        ApplicationName = await applicationManager.GetDisplayNameAsync(application),
                         Scope = request.Scope
                     });
             }
@@ -231,33 +236,40 @@ namespace InternetId.Server.Areas.Connect.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Accept()
         {
-            var request = HttpContext.GetOpenIddictServerRequest() ??
+            var request =
+                HttpContext.GetOpenIddictServerRequest() ??
                 throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
 
             // Retrieve the profile of the logged in user.
-            var user = await _userManager.GetUserAsync(User) ??
+            var user =
+                await userManager.FindUserAsync(User) ??
                 throw new InvalidOperationException("The user details cannot be retrieved.");
 
             // Retrieve the application details from the database.
-            var application = await _applicationManager.FindByClientIdAsync(request.ClientId) ??
+            var application =
+                await applicationManager.FindByClientIdAsync(request.ClientId!) ??
                 throw new InvalidOperationException("Details concerning the calling client application cannot be found.");
 
             // Retrieve the permanent authorizations associated with the user and the calling client application.
-            var authorizations = await _authorizationManager.FindAsync(
-                subject: await _userManager.GetUserIdAsync(user),
-                client: await _applicationManager.GetIdAsync(application),
-                status: Statuses.Valid,
-                type: AuthorizationTypes.Permanent,
-                scopes: request.GetScopes()).ToListAsync();
+            var authorizations = await authorizationManager
+                .FindAsync(
+                    subject: user.Id.ToString(),
+                    client: await applicationManager.GetIdAsync(application),
+                    status: Statuses.Valid,
+                    type: AuthorizationTypes.Permanent,
+                    scopes: request.GetScopes()
+                )
+                .ToListAsync();
 
             // Note: the same check is already made in the other action but is repeated
             // here to ensure a malicious user can't abuse this POST-only endpoint and
             // force it to return a valid response without the external authorization.
-            if (!authorizations.Any() && await _applicationManager.HasConsentTypeAsync(application, ConsentTypes.External))
+            if (!authorizations.Any() &&
+                await applicationManager.HasConsentTypeAsync(application, ConsentTypes.External))
             {
                 return Forbid(
                     authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
-                    properties: new AuthenticationProperties(new Dictionary<string, string>
+                    properties: new AuthenticationProperties(new Dictionary<string, string?>
                     {
                         [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.ConsentRequired,
                         [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] =
@@ -265,28 +277,28 @@ namespace InternetId.Server.Areas.Connect.Controllers
                     }));
             }
 
-            var principal = await _signInManager.CreateUserPrincipalAsync(user);
+            var principal = await signInManager.CreateClaimsPrincipalAsync(user);
 
             // Note: in this sample, the granted scopes match the requested scope
             // but you may want to allow the user to uncheck specific scopes.
             // For that, simply restrict the list of scopes before calling SetScopes.
             principal.SetScopes(request.GetScopes());
-            principal.SetResources(await _scopeManager.ListResourcesAsync(principal.GetScopes()).ToListAsync());
+            principal.SetResources(await scopeManager.ListResourcesAsync(principal.GetScopes()).ToListAsync());
 
             // Automatically create a permanent authorization to avoid requiring explicit consent
             // for future authorization or token requests containing the same scopes.
             var authorization = authorizations.LastOrDefault();
             if (authorization == null)
             {
-                authorization = await _authorizationManager.CreateAsync(
+                authorization = await authorizationManager.CreateAsync(
                     principal: principal,
-                    subject: await _userManager.GetUserIdAsync(user),
-                    client: await _applicationManager.GetIdAsync(application),
+                    subject: user.Id.ToString(),
+                    client: await applicationManager.GetIdAsync(application),
                     type: AuthorizationTypes.Permanent,
                     scopes: principal.GetScopes());
             }
 
-            principal.SetAuthorizationId(await _authorizationManager.GetIdAsync(authorization));
+            principal.SetAuthorizationId(await authorizationManager.GetIdAsync(authorization));
 
             foreach (var claim in principal.Claims)
             {
@@ -301,7 +313,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
         [HttpPost("~/connect/authorize")]
         [IgnoreAntiforgeryToken]
         // Notify OpenIddict that the authorization grant has been denied by the resource owner
-        // to redirect the user agent to the client application using the appropriate response_mode.
+        // to redirect the user agent to the client application using the appropriate responsemode.
         public IActionResult Deny() => Forbid(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
 
         [HttpGet("~/connect/logout")]
@@ -312,13 +324,11 @@ namespace InternetId.Server.Areas.Connect.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> LogoutPost()
         {
-            // Ask ASP.NET Core Identity to delete the local and external cookies created
-            // when the user agent is redirected from the external identity provider
-            // after a successful authentication flow (e.g Google or Facebook).
-            await _signInManager.SignOutAsync();
+            // Note that if any identity providers were used to authenticate then
+            // a call should be made at this point to clean up those local and external cookies.
 
             // Returning a SignOutResult will ask OpenIddict to redirect the user agent
-            // to the post_logout_redirect_uri specified by the client application or to
+            // to the postlogoutredirecturi specified by the client application or to
             // the RedirectUri specified in the authentication properties if none was set.
             return SignOut(
                 authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
@@ -338,18 +348,18 @@ namespace InternetId.Server.Areas.Connect.Controllers
             if (request.IsAuthorizationCodeGrantType() || request.IsRefreshTokenGrantType())
             {
                 // Retrieve the claims principal stored in the authorization code/device code/refresh token.
-                var principal = (await HttpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme)).Principal;
+                var principal = (await HttpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme)).Principal!;
 
                 // Retrieve the user profile corresponding to the authorization code/refresh token.
                 // Note: if you want to automatically invalidate the authorization code/refresh token
                 // when the user password/roles change, use the following line instead:
-                // var user = _signInManager.ValidateSecurityStampAsync(info.Principal);
-                var user = await _userManager.GetUserAsync(principal);
+                // var user = signInManager.ValidateSecurityStampAsync(info.Principal);
+                var user = await userManager.FindUserAsync(principal);
                 if (user == null)
                 {
                     return Forbid(
                         authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
-                        properties: new AuthenticationProperties(new Dictionary<string, string>
+                        properties: new AuthenticationProperties(new Dictionary<string, string?>
                         {
                             [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
                             [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The token is no longer valid."
@@ -357,11 +367,11 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 }
 
                 // Ensure the user is still allowed to sign in.
-                if (!await _signInManager.CanSignInAsync(user))
+                if (!await signInManager.CanSignInAsync(user))
                 {
                     return Forbid(
                         authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
-                        properties: new AuthenticationProperties(new Dictionary<string, string>
+                        properties: new AuthenticationProperties(new Dictionary<string, string?>
                         {
                             [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
                             [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The user is no longer allowed to sign in."
@@ -412,8 +422,10 @@ namespace InternetId.Server.Areas.Connect.Controllers
 
                     yield break;
 
-                // Never include the security stamp in the access and identity tokens, as it's a secret value.
-                case "AspNet.Identity.SecurityStamp": yield break;
+                // Never include the secret values in the access and identity tokens.
+                case "example_secret":
+                case "another_example_secret":
+                    yield break;
 
                 default:
                     yield return Destinations.AccessToken;

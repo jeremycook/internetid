@@ -1,14 +1,27 @@
 ﻿@model ErrorViewModel
-    
-<div class="jumbotron">
-    <h2>Ooooops, something went really bad! :(</h2>
-    <p class="lead text-left">
-        @if (!string.IsNullOrEmpty(Model.Error)) {
-            <strong>@Model.Error</strong>
+@{
+    Layout = "_ThinLayout";
+    ViewBag.Title = "Error";
+}
+
+<div class="card">
+    <div class="card-body text-center">
+        <h1>@ViewBag.Title</h1>
+        <p class="lead">Something unexpected happened</p>
+
+        @if (Model != null)
+        {
+            <p class="alert alert-danger">
+                <strong>@Model.Error</strong>
+
+                @if (!string.IsNullOrEmpty(Model.Description))
+                {@Model.Description}
+            </p>
         }
 
-        @if (!string.IsNullOrEmpty(Model.ErrorDescription)) {
-            <small>@Model.ErrorDescription</small>
-        }
-    </p>
+        <p>
+            You may want to <a href="javascript:history.back()">go back</a> and try again,
+            or <a href="~/login">login</a> again.
+        </p>
+    </div>
 </div>

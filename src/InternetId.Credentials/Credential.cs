@@ -11,14 +11,14 @@ namespace InternetId.Credentials
         [Required]
         public string Key { get; set; } = null!;
 
-        [Required(AllowEmptyStrings = true)]
-        public string Data { get; set; } = string.Empty;
-
         public int Attempts { get; set; }
 
         public DateTimeOffset? LockedOutUntil { get; set; }
 
+        [Required(AllowEmptyStrings = true)]
+        public string Data { get; set; } = string.Empty;
+
         [Required]
-        public string HashedCode { get; set; } = null!;
+        public string Hash { get; set; } = null!;
     }
 }

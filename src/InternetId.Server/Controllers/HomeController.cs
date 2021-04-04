@@ -12,17 +12,8 @@ namespace InternetId.Server.Controllers
             _logger = logger;
         }
 
+        [HttpGet("~/")]
         public IActionResult Index()
-        {
-            return View();
-        }
-
-        public IActionResult Privacy()
-        {
-            return View();
-        }
-
-        public IActionResult Error()
         {
             return View();
         }

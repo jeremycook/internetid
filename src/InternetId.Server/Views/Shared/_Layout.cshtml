@@ -28,7 +28,7 @@
                 </ul>
 
                 <div class="col-md-3 text-end">
-                    @if (User.Identity.IsAuthenticated)
+                    @if (User.Identity!.IsAuthenticated)
                     {
                         <a class="btn btn-outline-primary me-2" asp-area="Identity" asp-page="/Account/Manage/Index" title="Manage">Hi @User.Identity!.Name</a>
                         <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Content("~/")">

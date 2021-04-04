@@ -1,13 +1,14 @@
 using InternetId.Users.Data;
+using InternetId.Users.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
@@ -27,35 +28,43 @@ namespace InternetId.Server.Areas.Connect.Controllers
             [Scopes.Phone] = new[] { "phone", "phone_verified" },
         };
 
-        private readonly UserManager<User> _userManager;
+        private readonly UserFinder _userManager;
 
-        public UserinfoController(UserManager<User> userManager)
+        public UserinfoController(UserFinder userManager)
             => _userManager = userManager;
 
         [Authorize(AuthenticationSchemes = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme)]
         [HttpGet("~/connect/userinfo"), HttpPost("~/connect/userinfo"), Produces("application/json")]
         public async Task<IActionResult> Userinfo()
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await _userManager.FindUserAsync(User);
             if (user == null)
             {
                 return Challenge(
                     authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
-                    properties: new AuthenticationProperties(new Dictionary<string, string>
+                    properties: new AuthenticationProperties(new Dictionary<string, string?>
                     {
                         [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidToken,
-                        [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] =
-                            "The specified access token is bound to an account that no longer exists."
+                        [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The specified access token is bound to an account that no longer exists."
                     }));
             }
 
-            var userClaims = await _userManager.GetClaimsAsync(user);
+            // TODO: Add claims from the user once we start tracking user claims.
+            var userClaims = new List<Claim>();
 
             var claims = new Dictionary<string, object>(StringComparer.Ordinal)
             {
                 // The sub claim is a mandatory claim that must be included in the JSON response.
-                [Claims.Subject] = await _userManager.GetUserIdAsync(user)
+                // TODO: Make the Subject per client by hashing the client ID and user ID together.
+                [Claims.Subject] = user.Id.ToString(),
             };
+
+            if (User.HasScope(Scopes.Email) && user.EmailVerified && !string.IsNullOrWhiteSpace(user.Email))
+            {
+                // Only pass the email if it has been verified.
+                claims[Claims.Email] = user.Email;
+                claims[Claims.EmailVerified] = user.EmailVerified;
+            }
 
             if (User.HasScope(Scopes.Profile))
             {
@@ -67,7 +76,12 @@ namespace InternetId.Server.Areas.Connect.Controllers
 
                 if (!claims.ContainsKey(Claims.PreferredUsername))
                 {
-                    claims.Add(Claims.PreferredUsername, user.UserName);
+                    claims.Add(Claims.PreferredUsername, user.Username);
+                }
+
+                if (!claims.ContainsKey(Claims.Name))
+                {
+                    claims.Add(Claims.Name, user.DisplayName);
                 }
             }
 
@@ -80,19 +94,15 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 }
             }
 
-            if (User.HasScope(Scopes.Email))
-            {
-                claims[Claims.Email] = await _userManager.GetEmailAsync(user);
-                claims[Claims.EmailVerified] = await _userManager.IsEmailConfirmedAsync(user);
-            }
-
             if (User.HasScope(Scopes.Phone))
             {
-                claims[Claims.PhoneNumber] = await _userManager.GetPhoneNumberAsync(user);
-                claims[Claims.PhoneNumberVerified] = await _userManager.IsPhoneNumberConfirmedAsync(user);
+                // TODO: We don't track phone number right now.
             }
 
-            // Intentionally ignoring the roles scope until we have an interface for managing that per client.
+            if (User.HasScope(Scopes.Roles))
+            {
+                // Intentionally ignoring the roles scope until we have an interface for managing that per client.
+            }
 
             return Ok(claims);
         }

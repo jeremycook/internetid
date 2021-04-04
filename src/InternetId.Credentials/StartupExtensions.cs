@@ -1,9 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using InternetId.Credentials;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using System;
 
-namespace InternetId.Credentials
+namespace Microsoft.Extensions.DependencyInjection
 {
     public static class StartupExtensions
     {
