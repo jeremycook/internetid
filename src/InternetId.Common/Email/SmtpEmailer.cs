@@ -19,10 +19,10 @@ namespace InternetId.Common.Email
 
         public async Task SendEmailAsync(string email, string subject, string htmlMessage)
         {
-            using var message = new MailMessage(internetIdOptions.Value.FromEmailAddress, email)
+            using var message = new MailMessage(internetIdOptions.Value.EmailFromAddress, email)
             {
-                Subject = string.Format("{0}: {1}", internetIdOptions.Value.Title, subject),
-                Body = string.Format(internetIdOptions.Value.EmailFormat, HtmlEncoder.Default.Encode(subject), htmlMessage),
+                Subject = string.Format(internetIdOptions.Value.EmailSubjectFormat, subject),
+                Body = string.Format(internetIdOptions.Value.EmailBodyFormat, HtmlEncoder.Default.Encode(subject), htmlMessage),
                 IsBodyHtml = true,
                 BodyEncoding = Encoding.UTF8,
                 HeadersEncoding = Encoding.UTF8,

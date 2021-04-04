@@ -7,34 +7,34 @@ namespace InternetId.Credentials
     {
         public VerifySecretOutcome Outcome { get; private set; }
         public string Message { get; private set; } = null!;
-        public Credential? UserCode { get; private set; }
+        public Credential? Credential { get; private set; }
 
-        public static CredentialResult InvalidCode(Credential? userCode = null) => new CredentialResult
+        public static CredentialResult Invalid(Credential? credential = null) => new CredentialResult
         {
             Outcome = VerifySecretOutcome.Invalid,
-            Message = "The code is invalid. Verify you entered the correct code. If it looks correct you may want to generate a new code.",
-            UserCode = userCode,
+            Message = "The credential is invalid. Verify that what was entered is correct. If it looks correct you may want to generate a new one.",
+            Credential = credential,
         };
 
-        public static CredentialResult TryAgainLater(Credential userCode, DateTimeOffset lockedOutUntil) => new CredentialResult
+        public static CredentialResult Locked(Credential credential, DateTimeOffset lockedOutUntil) => new CredentialResult
         {
-            Outcome = VerifySecretOutcome.LockedOut,
+            Outcome = VerifySecretOutcome.Locked,
             Message = $"Too many failed attempts. You'll be able to try again in {(DateTimeOffset.Now - lockedOutUntil).Humanize()}.",
-            UserCode = userCode,
+            Credential = credential,
         };
 
-        public static CredentialResult Expired(Credential userCode) => new CredentialResult
+        public static CredentialResult Expired(Credential credential) => new CredentialResult
         {
             Outcome = VerifySecretOutcome.Expired,
-            Message = "The code has expired. Please generate and use a new code.",
-            UserCode = userCode,
+            Message = "The credential has expired. You will need to generate a new one.",
+            Credential = credential,
         };
 
-        public static CredentialResult Valid(Credential userCode) => new CredentialResult
+        public static CredentialResult Verified(Credential credential) => new CredentialResult
         {
             Outcome = VerifySecretOutcome.Verified,
-            Message = "Valid code.",
-            UserCode = userCode,
+            Message = "The credential was successfully verified.",
+            Credential = credential,
         };
     }
 }

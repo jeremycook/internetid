@@ -10,9 +10,9 @@ namespace InternetId.Server.Services
 {
     public class SignInManager
     {
-        private readonly IHttpContextAccessor httpContextAccessor;
+        public const string Scheme = "Cookies";
 
-        public string Scheme { get; } = "cookies";
+        private readonly IHttpContextAccessor httpContextAccessor;
 
         public SignInManager(IHttpContextAccessor httpContextAccessor)
         {

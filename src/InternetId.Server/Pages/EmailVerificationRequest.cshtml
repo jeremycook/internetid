@@ -1,0 +1,33 @@
+﻿@page
+@model EmailVerificationRequestModel
+@{
+    ViewData["Title"] = "Email verification";
+}
+
+<div class="card mb-3">
+    <div class="card-body">
+
+        <div class="text-center">
+            <h1>@ViewData["Title"]</h1>
+            <p class="lead">Request an email verification code</p>
+        </div>
+
+        <form asp-route-returnUrl="@Model.ReturnUrl" method="post">
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <fieldset>
+                <div class="mb-3">
+                    <label asp-for="Input.Identifier"></label>
+                    <input asp-for="Input.Identifier" class="form-control" autofocus />
+                </div>
+            </fieldset>
+            <div class="d-flex justify-content-between">
+                <button type="submit" class="btn btn-primary">Request a new code</button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

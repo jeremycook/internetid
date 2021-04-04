@@ -16,8 +16,7 @@ namespace InternetId.Users.Data
         public Guid Id { get; set; }
 
         [Required]
-        [StringLength(100, MinimumLength = 3)]
-        [RegularExpression("^[A-Za-z][A-Za-z0-9]*$", ErrorMessage = "The {0} field must start with a letter, and can only contain letters or numbers.")]
+        [RegularExpression("^[a-zA-Z][a-zA-Z0-9]*$", ErrorMessage = "The {0} must start with a letter, and may only contain letters and numbers.")]
         public string Username { get => _username!; set => _username = value?.Trim(); }
 
         [Required]

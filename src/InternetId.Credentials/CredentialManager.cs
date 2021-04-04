@@ -67,7 +67,7 @@ namespace InternetId.Credentials
             data ??= string.Empty;
 
             var purposeOptions = GetPurposeOptions(purpose);
-            string hash = HashSecret(purpose, key, secret, data, TimeSpan.FromMinutes(purposeOptions.LifespanMinutes));
+            string hash = HashSecret(purpose, key, secret, data, TimeSpan.FromDays(purposeOptions.LifespanDays));
 
             var userCode = await FindCredentialAsync(purpose, key);
             if (userCode != null)
@@ -87,7 +87,7 @@ namespace InternetId.Credentials
                     Purpose = purpose,
                     Key = key,
                     Data = data,
-                    LockedOutUntil = null,
+                    LockedUntil = null,
                     Attempts = 0,
                     Hash = hash,
                 };
@@ -107,9 +107,11 @@ namespace InternetId.Credentials
         /// <returns></returns>
         public async Task<CredentialResult> VerifyShortcodeAsync(string purpose, string key, string shortcode)
         {
-            if (string.IsNullOrWhiteSpace(shortcode)) throw new ArgumentException($"'{nameof(shortcode)}' cannot be null or whitespace.", nameof(shortcode));
+            // Shortcodes will always be lowercase
+            string secret = shortcode?.ToLowerInvariant() ?? string.Empty;
 
-            var secret = string.Concat(shortcode.Where(ch => shortcodeTokens.Contains(ch)));
+            // Remove invalid characters
+            secret = string.Concat(secret.Where(ch => shortcodeTokens.Contains(ch)));
 
             return await VerifySecretAsync(purpose, key, secret);
         }
@@ -126,19 +128,19 @@ namespace InternetId.Credentials
             if (credential == null)
             {
                 logger.LogInformation("Invalid {Purpose} credential", purpose);
-                return CredentialResult.InvalidCode();
+                return CredentialResult.Invalid();
             }
 
             if (credential.Attempts >= purposeOptions.AttemptsPerLockout)
             {
                 // Verification attempts exceeded.
 
-                if (credential.LockedOutUntil == null)
+                if (credential.LockedUntil == null)
                 {
                     throw new InvalidOperationException("The LockedOutUntil field must already be set.");
                 }
 
-                if (credential.LockedOutUntil.Value >= DateTimeOffset.UtcNow)
+                if (credential.LockedUntil.Value >= DateTimeOffset.UtcNow)
                 {
                     // Track failed attempt
                     credential.Attempts++;
@@ -146,11 +148,11 @@ namespace InternetId.Credentials
 
                     // Fail until we hit the unlock timeout.
                     logger.LogInformation("Locked {Purpose} credential", purpose);
-                    return CredentialResult.TryAgainLater(credential, credential.LockedOutUntil.Value);
+                    return CredentialResult.Locked(credential, credential.LockedUntil.Value);
                 }
 
                 // The lockout has passed, unlock it and permit verification.
-                credential.LockedOutUntil = null;
+                credential.LockedUntil = null;
                 credential.Attempts = 0;
                 await db.SaveChangesAsync();
             }
@@ -163,14 +165,14 @@ namespace InternetId.Credentials
                     if (credential.Attempts == 0)
                     {
                         // If this is the first failed attempt then start the lockout.
-                        credential.LockedOutUntil = DateTimeOffset.UtcNow.AddMinutes(purposeOptions.LockoutMinutes);
+                        credential.LockedUntil = DateTimeOffset.UtcNow.AddMinutes(purposeOptions.LockMinutes);
                     }
                     // Track failed attempt
                     credential.Attempts++;
                     await db.SaveChangesAsync();
 
                     logger.LogInformation("Invalid {Purpose} credential", purpose);
-                    return CredentialResult.InvalidCode(credential);
+                    return CredentialResult.Invalid(credential);
 
                 case HasherVerificationResult.Expired:
 
@@ -186,7 +188,7 @@ namespace InternetId.Credentials
                     }
 
                     logger.LogInformation("Valid {Purpose} credential", purpose);
-                    return CredentialResult.Valid(credential);
+                    return CredentialResult.Verified(credential);
 
                 case HasherVerificationResult.Inactive:
                 default:
@@ -210,6 +212,10 @@ namespace InternetId.Credentials
             if (!userCodeOptions.Value.Purposes.TryGetValue(purpose, out var purposeOptions))
             {
                 throw new ArgumentOutOfRangeException(nameof(purpose), $"'{purpose}' purpose options could not be found. It must be configured.");
+            }
+            else if (!purposeOptions.Enabled)
+            {
+                throw new ArgumentException($"'{purpose}' purpose is disabled.", nameof(purpose));
             }
 
             return purposeOptions;

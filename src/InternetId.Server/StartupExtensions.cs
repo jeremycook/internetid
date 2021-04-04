@@ -15,10 +15,10 @@ namespace Microsoft.Extensions.DependencyInjection
 
             services.AddScoped<SignInManager>();
 
-            services.AddAuthentication()
+            services.AddAuthentication(SignInManager.Scheme)
                 .AddCookie(options =>
                 {
-                    options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Strict;
+                    options.Cookie.SameSite = AspNetCore.Http.SameSiteMode.Strict;
 
                     options.AccessDeniedPath = "/access-denied";
                     options.LoginPath = "/login";

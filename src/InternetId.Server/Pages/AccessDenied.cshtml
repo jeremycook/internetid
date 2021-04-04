@@ -6,33 +6,24 @@
 }
 
 <div class="card mb-3">
-    <div class="card-body">
+    <div class="card-body text-center">
 
-        <div class="text-center">
-            <h1>@ViewData["Title"]</h1>
-            <p class="lead">
-                You do not have permission to access the requested page or resource.
-                @if (Model.ReturnUrl != null)
-                {
-                    @:You were trying to access <a href="@Model.ReturnUrl">@Model.ReturnUrl</a>.
-                }
-            </p>
-        </div>
+        <h1>@ViewData["Title"]</h1>
+        <p class="lead">
+            You do not have permission to access the requested page or resource.
+            @if (Url.IsLocalUrl(Model.ReturnUrl))
+            {
+                @:You were trying to access <a href="@Model.ReturnUrl">@Model.ReturnUrl</a>.
+            }
+        </p>
 
     </div>
 </div>
 
 <div class="card mb-3">
-    <div class="card-body">
+    <div class="card-body text-center">
 
-        <ul>
-            <li>
-                Forgot your password? <a id="forgot-password" asp-page="./ForgotPassword">Reset it here</a>
-            </li>
-            <li>
-                Don't have an InternetID? <a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl">Sign up here</a>
-            </li>
-        </ul>
+        <a class="btn btn-outline-primary" href="~/">Home</a>
 
     </div>
 </div>

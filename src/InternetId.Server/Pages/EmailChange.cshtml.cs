@@ -12,32 +12,32 @@ using System.Threading.Tasks;
 namespace InternetId.Server.Pages
 {
     [AllowAnonymous]
-    public class LoginModel : PageModel
+    public class EmailChangeModel : PageModel
     {
-        private readonly ILogger<LoginModel> logger;
+        private readonly ILogger<EmailChangeModel> logger;
+        private readonly SignInManager signInManager;
         private readonly UserFinder userFinder;
         private readonly PasswordService passwordService;
-        private readonly SignInManager signInManager;
-        private readonly EmailService verifyEmailService;
+        private readonly EmailService emailService;
 
-        public LoginModel(
-            ILogger<LoginModel> logger,
+        public EmailChangeModel(
+            ILogger<EmailChangeModel> logger,
             SignInManager signInManager,
             UserFinder userFinder,
             PasswordService passwordService,
-            EmailService verifyEmailService)
+            EmailService emailService)
         {
             this.logger = logger;
             this.signInManager = signInManager;
             this.userFinder = userFinder;
             this.passwordService = passwordService;
-            this.verifyEmailService = verifyEmailService;
+            this.emailService = emailService;
         }
-
-        public string? ReturnUrl { get; set; }
 
         [BindProperty]
         public InputModel Input { get; set; } = new();
+
+        public string? ReturnUrl { get; set; }
 
         public class InputModel
         {
@@ -47,12 +47,18 @@ namespace InternetId.Server.Pages
 
             [Required]
             [DataType(DataType.Password)]
+            [Display(Name = "Password")]
             public string? Password { get; set; }
+
+            [Required]
+            [DataType(DataType.EmailAddress)]
+            [Display(Name = "New email")]
+            public string? NewEmail { get; set; }
         }
 
-        public void OnGet(string? identifier = null, string? returnUrl = null)
+        public async Task OnGetAsync(string? identifier = null, string? returnUrl = null)
         {
-            Input.Identifier = identifier;
+            Input.Identifier = identifier ?? (await userFinder.FindByClaimsPrincipalAsync(User))?.Username;
             ReturnUrl = returnUrl;
         }
 
@@ -71,51 +77,34 @@ namespace InternetId.Server.Pages
                         switch (result.Outcome)
                         {
                             case VerifySecretOutcome.Invalid:
+                            case VerifySecretOutcome.Expired:
 
                                 ModelState.AddModelError(string.Empty, "Incorrect username/email or password.");
                                 break;
 
                             case VerifySecretOutcome.Locked:
 
-                                ModelState.AddModelError(string.Empty, result.Message ?? "Too many failed login attempts. The user account is temporarily locked out. Please try again later.");
+                                ModelState.AddModelError(string.Empty, result.Message ?? "Too many failed attempts. The account is temporarily locked. Please try again later.");
                                 break;
-
-                            case VerifySecretOutcome.Expired:
-
-                                return RedirectToPage("PasswordChange", new { identifier = Input.Identifier, returnUrl = returnUrl });
 
                             case VerifySecretOutcome.Verified:
 
-                                if (!await signInManager.CanSignInAsync(user))
+                                bool verificationNeeded = await emailService.ChangeEmailAsync(user, Input.NewEmail!);
+
+                                await signInManager.SignOutAsync();
+                                await signInManager.SignInAsync(user);
+
+                                if (verificationNeeded)
                                 {
-                                    ModelState.AddModelError(string.Empty, "The user cannot be signed in.");
-                                    break;
+                                    return RedirectToPage("EmailVerification", new { identifier = Input.Identifier, returnUrl = returnUrl });
+                                }
+                                else if (Url.IsLocalUrl(returnUrl))
+                                {
+                                    return LocalRedirect(returnUrl);
                                 }
                                 else
                                 {
-                                    if (!string.IsNullOrWhiteSpace(user.Email) && !user.EmailVerified)
-                                    {
-                                        // Sign them in but keep asking them to verify their email address.
-                                        await signInManager.SignInAsync(user);
-
-                                        await verifyEmailService.SendVerificationCodeAsync(user);
-                                        return RedirectToPage("EmailVerification", new { identifier = Input.Identifier, returnUrl = returnUrl });
-                                    }
-                                    else
-                                    {
-                                        await signInManager.SignInAsync(user);
-
-                                        if (!string.IsNullOrWhiteSpace(returnUrl) &&
-                                            Url.IsLocalUrl(returnUrl) &&
-                                            !returnUrl.StartsWith(Url.Page("Login")))
-                                        {
-                                            return LocalRedirect(returnUrl);
-                                        }
-                                        else
-                                        {
-                                            return RedirectToPage("Profile");
-                                        }
-                                    }
+                                    return RedirectToPage("Profile");
                                 }
 
                             default:

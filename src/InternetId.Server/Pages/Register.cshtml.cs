@@ -16,14 +16,14 @@ namespace InternetId.Server.Pages
     {
         private readonly ILogger<RegisterModel> logger;
         private readonly UsersDbContext usersDb;
-        private readonly UserPasswordService userPasswordService;
-        private readonly UserVerifyEmailService userVerifyEmailService;
+        private readonly PasswordService userPasswordService;
+        private readonly EmailService userVerifyEmailService;
 
         public RegisterModel(
             ILogger<RegisterModel> logger,
             UsersDbContext usersDb,
-            UserPasswordService userPasswordService,
-            UserVerifyEmailService userVerifyEmailService)
+            PasswordService userPasswordService,
+            EmailService userVerifyEmailService)
         {
             this.logger = logger;
             this.usersDb = usersDb;
@@ -41,12 +41,13 @@ namespace InternetId.Server.Pages
             private string? username;
 
             [Required]
-            [RegularExpression("^[a-zA-Z0-9]+$", ErrorMessage = "The {0} may only contain letters and numbers.")]
+            [MinLength(5, ErrorMessage = "The {0} must be at least {1} characters long.")]
+            [RegularExpression("^[a-zA-Z][a-zA-Z0-9]*$", ErrorMessage = "The {0} must start with a letter, and may only contain letters and numbers.")]
             [Display(Name = "Username")]
             public string? Username { get => username; set => username = value?.Trim(); }
 
             [Required]
-            [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 9)]
+            [MinLength(9, ErrorMessage = "The {0} must be at least {1} characters long.")]
             [DataType(DataType.Password)]
             [Display(Name = "Password")]
             public string? Password { get; set; }
@@ -73,15 +74,19 @@ namespace InternetId.Server.Pages
 
         public async Task<IActionResult> OnPostAsync(string? returnUrl = null)
         {
-            if (Input.Username is string username && await usersDb.Users.AnyAsync(o => o.LowercaseUsername == username.ToLowerInvariant()))
+            try
             {
-                ModelState.AddModelError(string.Empty, $"The '{Input.Username}' username is taken. Consider appending numbers or trying a different username.");
-            }
-
-            if (ModelState.IsValid)
-            {
-                try
+                if (Input.Username is string username && await usersDb.Users.AnyAsync(o => o.LowercaseUsername == username.ToLowerInvariant()))
                 {
+                    ModelState.AddModelError(string.Empty, $"The '{Input.Username}' username is taken. Consider appending numbers or trying a different username.");
+                }
+
+                if (ModelState.IsValid)
+                {
+                    // Use a transaction to avoid creating a user
+                    // but setting the password fails.
+                    using var tx = await usersDb.Database.BeginTransactionAsync();
+
                     var user = new User
                     {
                         Username = Input.Username!,
@@ -93,10 +98,12 @@ namespace InternetId.Server.Pages
 
                     await userPasswordService.SetPasswordAsync(user, Input.Password!);
 
+                    await tx.CommitAsync();
+
                     if (user.Email != null)
                     {
-                        await userVerifyEmailService.SendVerifyEmailCodeAsync(user);
-                        return RedirectToPage("VerifyEmail", new { username = user.Username, returnUrl = returnUrl });
+                        await userVerifyEmailService.SendVerificationCodeAsync(user);
+                        return RedirectToPage("EmailVerification", new { identifier = user.Username, returnUrl = returnUrl });
                     }
                     else if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl) && returnUrl.StartsWith(Url.Page("Register")))
                     {
@@ -107,14 +114,20 @@ namespace InternetId.Server.Pages
                         return RedirectToPage("Profile");
                     }
                 }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, $"Suppressed {ex.GetType()}: {ex.Message}");
-                    ModelState.AddModelError(string.Empty, $"An unexpected error occurred.");
-                }
+            }
+            catch (ValidationException ex)
+            {
+                logger.LogWarning(ex, $"Suppressed {ex.GetType()}: {ex.Message}");
+                ModelState.AddModelError(string.Empty, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, $"Suppressed {ex.GetType()}: {ex.Message}");
+                ModelState.AddModelError(string.Empty, "An unexpected error occurred.");
             }
 
             ReturnUrl = returnUrl;
+
             return Page();
         }
     }

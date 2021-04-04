@@ -1,0 +1,54 @@
+﻿@page
+@model ProfileModel
+@inject Microsoft.Extensions.Options.IOptions<InternetId.Common.InternetIdOptions> internetIdOptions
+@{
+    Layout = "_Layout";
+    ViewBag.Title = $"Hello {Model.CurrentUser.DisplayName}";
+}
+
+<div class="row justify-content-around">
+    <div class="col-md-6">
+
+        <div class="card mb-3">
+            <div class="card-body text-center">
+
+                <h1>@ViewBag.Title</h1>
+                <p class="lead">Manage your @internetIdOptions.Value.Title</p>
+                <form class="d-inline" asp-page="/Logout">
+                    <button type="submit" class="btn btn-outline-primary me-2">Logout</button>
+                </form>
+
+            </div>
+        </div>
+
+        <div class="card">
+            <table class="table">
+                <tr>
+                    <th>Display Name</th>
+                    <td>@Model.CurrentUser.DisplayName</td>
+                    <td class="text-end"><a asp-page="ProfileEditor" asp-fragment="Input_DisplayName">Change<span class="visually-hidden"> your display name</span></a></td>
+                </tr>
+                @if (!string.IsNullOrWhiteSpace(Model.CurrentUser.Email))
+                {
+                    <tr>
+                        <th>Email</th>
+                        <td>
+                            @Model.CurrentUser.Email
+                            @if (!Model.CurrentUser.EmailVerified)
+                            {
+                                <a asp-page="EmailVerificationRequest" asp-route-identifier="@Model.CurrentUser.Username">Verify</a>
+                            }
+                        </td>
+                        <td class="text-end"><a asp-page="EmailChange">Change<span class="visually-hidden"> your email</span></a></td>
+                    </tr>
+                }
+                <tr>
+                    <th>Password</th>
+                    <td>*********</td>
+                    <td class="text-end"><a asp-page="PasswordChange">Change<span class="visually-hidden"> your password</span></a></td>
+                </tr>
+            </table>
+        </div>
+
+    </div>
+</div>

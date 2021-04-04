@@ -24,8 +24,26 @@
     box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
 }
 
+    .card .card {
+        box-shadow: 0 .125rem .5rem rgba(0,0,0,.15);
+    }
+
+    .card .span-card {
+        margin-left: -1.25rem;
+        margin-right: -1.25rem;
+    }
+
+    .card > :last-child {
+        margin-bottom: 0;
+    }
+
+    .card > table:last-child > tbody > tr:last-child > td,
+    .card > table:last-child > tbody > tr:last-child > th {
+        border-bottom: none !important;
+    }
+
 .card-body > :last-child {
-    margin-bottom: 0;
+    margin-bottom: 0 !important;
 }
 
 input:required, select:required, textarea:required,

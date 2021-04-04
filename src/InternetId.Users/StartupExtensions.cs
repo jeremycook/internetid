@@ -17,8 +17,9 @@ namespace Microsoft.Extensions.DependencyInjection
             services.AddDbContext<UsersDbContext>(usersDbContextOptionsBuilder);
 
             services.AddScoped<UserFinder>();
-            services.AddScoped<UserVerifyEmailService>();
-            services.AddScoped<UserPasswordService>();
+            services.AddScoped<EmailService>();
+            services.AddScoped<PasswordService>();
+            services.AddScoped<PasswordResetService>();
         }
     }
 }

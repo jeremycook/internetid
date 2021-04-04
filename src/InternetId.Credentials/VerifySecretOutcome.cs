@@ -3,7 +3,7 @@
     public enum VerifySecretOutcome
     {
         Invalid,
-        LockedOut,
+        Locked,
         Expired,
         Verified,
     }

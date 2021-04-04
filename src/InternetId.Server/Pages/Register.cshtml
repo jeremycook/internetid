@@ -1,5 +1,6 @@
 ﻿@page
 @model RegisterModel
+@inject Microsoft.Extensions.Options.IOptions<InternetId.Common.InternetIdOptions> internetIdOptions
 @{
     ViewData["Title"] = "Sign Up";
 }
@@ -7,17 +8,15 @@
 <div class="card mb-3">
     <div class="card-body">
 
-        <h1 class="text-center">@ViewData["Title"]</h1>
-
-        <p class="lead text-center">
-            Register a new InternetID
-        </p>
-
-        <hr />
+        <div class="text-center">
+            <h1>@ViewData["Title"]</h1>
+            <p class="lead">Register a new @internetIdOptions.Value.Title</p>
+        </div>
 
         <form asp-route-returnUrl="@Model.ReturnUrl" method="post">
             <div asp-validation-summary="All" class="text-danger"></div>
             <fieldset>
+
                 <div class="mb-3">
                     <label asp-for="Input.Username"></label>
                     <input asp-for="Input.Username" class="form-control" autofocus />
@@ -34,14 +33,14 @@
                     <label asp-for="Input.DisplayName"></label>
                     <input asp-for="Input.DisplayName" class="form-control" />
                 </div>
-                <fieldset>
-                    <legend>Account recovery</legend>
-                    <p>Enter an email address if you would like to be able to reset your password or recover your InternetID with it.</p>
-                    <div class="mb-3">
-                        <label asp-for="Input.Email"></label>
-                        <input asp-for="Input.Email" class="form-control" />
-                    </div>
-                </fieldset>
+
+                <p class="alert alert-info span-card">Entering your email address will allow you to use it to recover your account.</p>
+
+                <div class="mb-3">
+                    <label asp-for="Input.Email"></label>
+                    <input asp-for="Input.Email" class="form-control" />
+                </div>
+
             </fieldset>
             <div>
                 <button type="submit" class="btn btn-primary">Register</button>
@@ -52,16 +51,10 @@
 </div>
 
 <div class="card mb-3">
-    <div class="card-body">
+    <div class="card-body text-center">
 
-        <ul>
-            <li>
-                Forgot your password? <a id="forgot-password" asp-page="./ForgotPassword">Reset it here</a>
-            </li>
-            <li>
-                Already have an InternetID? <a asp-page="./Login" asp-route-returnUrl="@Model.ReturnUrl">Login here</a>
-            </li>
-        </ul>
+        <a asp-page="PasswordReset" asp-route-identifier="@Model.Input.Username" asp-route-returnUrl="@Model.ReturnUrl" class="btn btn-outline-primary">Reset your password</a>
+        <a asp-page="Login" asp-route-identifier="@Model.Input.Username" asp-route-returnUrl="@Model.ReturnUrl" class="btn btn-outline-primary">Login here</a>
 
     </div>
 </div>

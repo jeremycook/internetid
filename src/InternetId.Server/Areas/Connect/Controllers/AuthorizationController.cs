@@ -32,7 +32,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
         private readonly IOpenIddictApplicationManager applicationManager;
         private readonly IOpenIddictAuthorizationManager authorizationManager;
         private readonly IOpenIddictScopeManager scopeManager;
-        private readonly UserFinder userManager;
+        private readonly UserFinder userFinder;
         private readonly SignInManager signInManager;
         private readonly ILogger<AuthorizationController> logger;
 
@@ -40,14 +40,14 @@ namespace InternetId.Server.Areas.Connect.Controllers
             IOpenIddictApplicationManager applicationManager,
             IOpenIddictAuthorizationManager authorizationManager,
             IOpenIddictScopeManager scopeManager,
-            UserFinder userManager,
+            UserFinder userFinder,
             SignInManager signInManager,
             ILogger<AuthorizationController> logger)
         {
             this.applicationManager = applicationManager;
             this.authorizationManager = authorizationManager;
             this.scopeManager = scopeManager;
-            this.userManager = userManager;
+            this.userFinder = userFinder;
             this.signInManager = signInManager;
             this.logger = logger;
         }
@@ -62,7 +62,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
 
             // Retrieve the user principal stored in the authentication cookie.
             // If it can't be extracted, redirect the user to the login page.
-            var result = await HttpContext.AuthenticateAsync(signInManager.Scheme);
+            var result = await HttpContext.AuthenticateAsync(SignInManager.Scheme);
             if (result == null || !result.Succeeded || result.Principal == null)
             {
                 // If the client application requested promptless authentication,
@@ -79,7 +79,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 }
 
                 return Challenge(
-                    authenticationSchemes: signInManager.Scheme,
+                    authenticationSchemes: SignInManager.Scheme,
                     properties: new AuthenticationProperties
                     {
                         RedirectUri =
@@ -104,7 +104,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 parameters.Add(KeyValuePair.Create(Parameters.Prompt, new StringValues(prompt)));
 
                 return Challenge(
-                    authenticationSchemes: signInManager.Scheme,
+                    authenticationSchemes: SignInManager.Scheme,
                     properties: new AuthenticationProperties
                     {
                         RedirectUri = Request.PathBase + Request.Path + QueryString.Create(parameters)
@@ -129,7 +129,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 }
 
                 return Challenge(
-                    authenticationSchemes: signInManager.Scheme,
+                    authenticationSchemes: SignInManager.Scheme,
                     properties: new AuthenticationProperties
                     {
                         RedirectUri =
@@ -140,7 +140,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
             }
 
             // Retrieve the profile of the logged in user.
-            var user = await userManager.FindUserAsync(result.Principal);
+            var user = await userFinder.FindByClaimsPrincipalAsync(result.Principal);
             if (user == null)
             {
                 logger.LogWarning("The user details cannot be retrieved.");
@@ -242,7 +242,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
 
             // Retrieve the profile of the logged in user.
             var user =
-                await userManager.FindUserAsync(User) ??
+                await userFinder.FindByClaimsPrincipalAsync(User) ??
                 throw new InvalidOperationException("The user details cannot be retrieved.");
 
             // Retrieve the application details from the database.
@@ -354,7 +354,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 // Note: if you want to automatically invalidate the authorization code/refresh token
                 // when the user password/roles change, use the following line instead:
                 // var user = signInManager.ValidateSecurityStampAsync(info.Principal);
-                var user = await userManager.FindUserAsync(principal);
+                var user = await userFinder.FindByClaimsPrincipalAsync(principal);
                 if (user == null)
                 {
                     return Forbid(

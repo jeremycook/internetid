@@ -1,5 +1,6 @@
 ﻿@page
 @model LoginModel
+@inject Microsoft.Extensions.Options.IOptions<InternetId.Common.InternetIdOptions> internetIdOptions
 
 @{
     ViewData["Title"] = "Login";
@@ -11,15 +12,15 @@
 
         <div class="text-center">
             <h1>@ViewData["Title"]</h1>
-            <p class="lead">Sign in with your InternetID</p>
+            <p class="lead">Sign in with your @internetIdOptions.Value.Title</p>
         </div>
 
         <section>
             <form id="account" method="post">
                 <div asp-validation-summary="All" class="text-danger"></div>
                 <div class="mb-3">
-                    <label asp-for="Input.Login"></label>
-                    <input asp-for="Input.Login" class="form-control" autofocus />
+                    <label asp-for="Input.Identifier"></label>
+                    <input asp-for="Input.Identifier" class="form-control" autofocus />
                 </div>
                 <div class="mb-3">
                     <label asp-for="Input.Password"></label>
@@ -27,7 +28,7 @@
                 </div>
                 <div class="d-flex justify-content-between">
                     <button type="submit" class="btn btn-primary">Login</button>
-                    <a class="btn btn-outline-primary" asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl">Sign up</a>
+                    <a asp-page="Register" asp-route-returnUrl="@Model.ReturnUrl" class="btn btn-outline-primary">Sign up</a>
                 </div>
             </form>
         </section>
@@ -36,16 +37,10 @@
 </div>
 
 <div class="card mb-3">
-    <div class="card-body">
+    <div class="card-body text-center">
 
-        <ul>
-            <li>
-                Forgot your password? <a id="forgot-password" asp-page="./ForgotPassword">Reset it here</a>
-            </li>
-            <li>
-                Don't have an InternetID? <a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl">Sign up here</a>
-            </li>
-        </ul>
+        <a asp-page="Register" asp-route-returnUrl="@Model.ReturnUrl" class="btn btn-outline-primary">Register</a>
+        <a asp-page="PasswordReset" asp-route-returnUrl="@Model.ReturnUrl" class="btn btn-outline-primary">Reset your password</a>
 
     </div>
 </div>

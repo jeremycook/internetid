@@ -1,12 +1,13 @@
 ﻿@using Microsoft.Extensions.Primitives
 @model AuthorizeViewModel
+@inject Microsoft.Extensions.Options.IOptions<InternetId.Common.InternetIdOptions> internetIdOptions
 
 <div class="card">
     <div class="card-body text-center">
 
         <h1>Authorization</h1>
 
-        <p class="lead text-left">Do you want to log into <strong>@Model.ApplicationName</strong> with your InternetID?</p>
+        <p class="lead text-left">Do you want to log into <strong>@Model.ApplicationName</strong> with your @internetIdOptions.Value.Title?</p>
 
         <form class="mb-3" asp-controller="Authorization" asp-action="Authorize" method="post">
             @* Flow the request parameters so they can be received by the Accept/Reject actions: *@

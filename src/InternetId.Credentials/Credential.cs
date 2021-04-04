@@ -13,7 +13,7 @@ namespace InternetId.Credentials
 
         public int Attempts { get; set; }
 
-        public DateTimeOffset? LockedOutUntil { get; set; }
+        public DateTimeOffset? LockedUntil { get; set; }
 
         [Required(AllowEmptyStrings = true)]
         public string Data { get; set; } = string.Empty;

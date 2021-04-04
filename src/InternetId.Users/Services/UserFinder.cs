@@ -16,18 +16,23 @@ namespace InternetId.Users.Services
             this.usersDb = usersDb;
         }
 
-        public async Task<User?> FindUserAsync(ClaimsPrincipal claimsPrincipal)
+        public async Task<User?> FindByClaimsPrincipalAsync(ClaimsPrincipal claimsPrincipal)
         {
             var sub = claimsPrincipal.FindFirst("sub")?.Value;
 
             if (Guid.TryParse(sub, out Guid userId))
             {
-                return await usersDb.Users.FindAsync(userId);
+                return await FindByIdAsync(userId);
             }
             else
             {
                 return null;
             }
+        }
+
+        public async Task<User?> FindByIdAsync(Guid userId)
+        {
+            return await usersDb.Users.FindAsync(userId);
         }
 
         public async Task<User?> FindByUsernameAsync(string username)
@@ -37,16 +42,22 @@ namespace InternetId.Users.Services
             return await usersDb.Users.SingleOrDefaultAsync(o => o.LowercaseUsername == username);
         }
 
-        public async Task<User?> FindAsync(string login)
+        /// <summary>
+        /// Returns the unambiguously matching <see cref="User"/> or <c>null</c>.
+        /// <paramref name="identifier"/> can be a username or unique email.
+        /// </summary>
+        /// <param name="identifier">Username or unique email.</param>
+        /// <returns></returns>
+        public async Task<User?> FindByIdentifierAsync(string identifier)
         {
-            login = login.Trim().ToLowerInvariant();
+            identifier = identifier.Trim().ToLowerInvariant();
 
-            var user = await FindByUsernameAsync(login);
+            User? user = await FindByUsernameAsync(identifier);
 
             if (user == null)
             {
                 var candidates = await usersDb.Users
-                    .Where(o => o.Email != null && o.Email.ToLower() == login)
+                    .Where(o => o.Email != null && o.Email.ToLower() == identifier)
                     .Take(2)
                     .ToArrayAsync();
 

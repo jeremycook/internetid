@@ -1,5 +1,3 @@
-using InternetId.OpenIddict.Data;
-using InternetId.Users.Data;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
@@ -8,9 +6,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using PwnedPasswords.Client;
-using System;
-using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace InternetId.Server
 {

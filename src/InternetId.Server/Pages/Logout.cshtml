@@ -1,0 +1,32 @@
+﻿@page
+@model LogoutModel
+@{
+    ViewData["Title"] = "Log out";
+}
+
+<div class="card">
+    <div class="card-body text-center">
+
+        <h1>@ViewData["Title"]</h1>
+
+        @if (User.Identity!.IsAuthenticated)
+        {
+            <form class="mb-3" method="post">
+                <button type="submit" class="btn btn-primary">Confirm logout</button>
+            </form>
+            <p>
+                <a class="btn btn-outline-primary" href="~/">Home</a>
+                <a class="btn btn-outline-primary" asp-page="/Profile" title="Manage">Profile</a>
+            </p>
+        }
+        else
+        {
+            <p class="alert alert-info">You are logged out.</p>
+            <p>
+                <a class="btn btn-outline-primary" href="~/">Home</a>
+                <a class="btn btn-outline-primary" asp-page="/Login">Login</a>
+            </p>
+        }
+
+    </div>
+</div>
