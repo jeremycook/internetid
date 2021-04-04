@@ -12,7 +12,7 @@ namespace InternetId.Credentials
             /// <summary>
             /// Configurable, defaults to 1 hour.
             /// </summary>
-            public float LifespanDays { get; set; } = 1 / 24;
+            public float LifespanDays { get; set; } = 1f / 24f;
             /// <summary>
             /// Configurable, defaults to 10 minutes.
             /// </summary>
@@ -21,10 +21,6 @@ namespace InternetId.Credentials
             /// Configurable, defaults to 10.
             /// </summary>
             public int AttemptsPerLockout { get; set; } = 10;
-            /// <summary>
-            /// Configurable, defaults to <c>false</c>.
-            /// </summary>
-            public bool RetainAfterVerification { get; set; } = false;
         }
     }
 }

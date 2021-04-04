@@ -91,6 +91,7 @@ namespace InternetId.Server.Pages
 
                                 bool verificationNeeded = await emailService.ChangeEmailAsync(user, Input.NewEmail!);
 
+                                // Refresh user claims
                                 await signInManager.SignOutAsync();
                                 await signInManager.SignInAsync(user);
 

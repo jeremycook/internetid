@@ -10,8 +10,7 @@ namespace InternetId.Users.Services
 {
     public class EmailService
     {
-        private const string verificationPurpose = "email_verification";
-        private const string changePurpose = "email_change";
+        private const string purpose = "email_verification";
 
         private readonly UsersDbContext usersDbContext;
         private readonly CredentialManager credentialManager;
@@ -25,8 +24,10 @@ namespace InternetId.Users.Services
         }
 
         /// <summary>
-        /// Returns <c>true</c> if a verification code was sent.
-        /// Changes the <see cref="User.Email"/> of <paramref name="user"/> and sends a verification code if needed.
+        /// Returns <c>true</c> if a verification is needed and a code was sent.
+        /// Changes the <see cref="User.Email"/> of <paramref name="user"/> to <paramref name="email"/>,
+        /// sets <see cref="User.EmailVerified"/> to <c>false</c>,
+        /// and sends a verification code if needed.
         /// </summary>
         /// <param name="user"></param>
         /// <param name="email"></param>
@@ -37,8 +38,9 @@ namespace InternetId.Users.Services
 
             email = string.IsNullOrWhiteSpace(email) ? null : email.Trim();
 
-            if (user.LowercaseEmail == email?.ToLowerInvariant())
+            if (string.Equals(user.Email, email, StringComparison.InvariantCultureIgnoreCase))
             {
+                // Do nothing, the email hasn't changed.
                 return false;
             }
 
@@ -62,51 +64,30 @@ namespace InternetId.Users.Services
 
             var email = user.Email;
 
-            var shortcode = await credentialManager.CreateShortcodeAsync(verificationPurpose, user.Id.ToString(), data: email);
-            var purposeOptions = credentialManager.GetPurposeOptions(verificationPurpose);
+            var shortcode = await credentialManager.CreateShortcodeAsync(purpose, user.Id.ToString(), data: email);
+            var purposeOptions = credentialManager.GetPurposeOptions(purpose);
 
-            await emailer.SendEmailAsync(email, "Email Verification Code", $"<strong>{HtmlEncoder.Default.Encode(shortcode)}</strong> is your email verification code and will be valid for {TimeSpan.FromDays(purposeOptions.LifespanDays).Humanize()}. Use it to demonstrate that you have access to this email account.");
+            await emailer.SendEmailAsync(email, "Email Verification Code", $"<strong>{Encode(shortcode)}</strong> is your email verification code and will be valid for {TimeSpan.FromDays(purposeOptions.LifespanDays).Humanize()}. Use it to demonstrate that you have access to this email account.");
         }
 
         public async Task<CredentialResult> VerifyAsync(User user, string code)
         {
-            var result = await credentialManager.VerifyShortcodeAsync(verificationPurpose, user.Id.ToString(), code);
+            var result = await credentialManager.VerifyShortcodeAsync(purpose, user.Id.ToString(), code, removeIfVerified: false);
 
             if (result.Outcome == VerifySecretOutcome.Verified)
             {
                 var dbUser = await usersDbContext.Users.FindAsync(user.Id);
 
-                dbUser.Email = result.Credential!.Data;
+                if (!string.Equals(dbUser.Email, result.Credential!.Data, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    // Treat this code as expired since the user's email has changed since this code was generated.
+                    return CredentialResult.Expired(result.Credential);
+                }
+
                 dbUser.EmailVerified = true;
-
                 await usersDbContext.SaveChangesAsync();
-            }
 
-            return result;
-        }
-
-        public async Task SendChangeCodeAsync(User user, string newEmail)
-        {
-            if (user is null) throw new ArgumentNullException(nameof(user));
-            if (string.IsNullOrWhiteSpace(user.Email)) throw new ArgumentException($"'{nameof(user)}' does not have an email.", nameof(user));
-            if (string.IsNullOrWhiteSpace(newEmail)) throw new ArgumentException($"'{nameof(newEmail)}' cannot be null or empty.", nameof(newEmail));
-
-            newEmail = newEmail.Trim();
-
-            var shortcode = await credentialManager.CreateShortcodeAsync(changePurpose, user.Id.ToString(), data: newEmail);
-            var purposeOptions = credentialManager.GetPurposeOptions(changePurpose);
-
-            await emailer.SendEmailAsync(user.Email, "Change Email Code", $"<strong>{Encode(shortcode)}</strong> is your change email code and will be valid for {TimeSpan.FromDays(purposeOptions.LifespanDays).Humanize()}. Use it to confirm that you want to change your account's email from {Encode(user.Email)} to {Encode(newEmail)}.");
-        }
-
-        public async Task<CredentialResult> ConfirmChangeAsync(User user, string code)
-        {
-            var result = await credentialManager.VerifyShortcodeAsync(changePurpose, user.Id.ToString(), code);
-
-            if (result.Outcome == VerifySecretOutcome.Verified)
-            {
-                var newEmail = result.Credential!.Data.Trim();
-                await SendChangeCodeAsync(user, newEmail);
+                await credentialManager.RemoveCredentialAsync(purpose, user.Id.ToString());
             }
 
             return result;

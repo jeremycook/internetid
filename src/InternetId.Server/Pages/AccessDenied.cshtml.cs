@@ -10,10 +10,7 @@ namespace InternetId.Server.Pages
 
         public void OnGet(string? returnUrl = null)
         {
-            if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
-            {
-                ReturnUrl = returnUrl;
-            }
+            ReturnUrl = returnUrl;
         }
     }
 }

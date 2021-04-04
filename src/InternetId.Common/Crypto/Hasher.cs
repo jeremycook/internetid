@@ -166,7 +166,7 @@ namespace InternetId.Common.Crypto
             if (string.IsNullOrWhiteSpace(password)) throw new ArgumentException($"'{nameof(password)}' cannot be null or empty.", nameof(password));
             if (string.IsNullOrWhiteSpace(hashString)) throw new ArgumentException($"'{nameof(hashString)}' cannot be null or empty.", nameof(hashString));
 
-            Hash hash = JsonSerializer.Deserialize<Hash>(hashString, jsonSerializerOptions);
+            Hash hash = JsonSerializer.Deserialize<Hash>(hashString, jsonSerializerOptions)!;
 
             byte[] salt = hash.GetSalt();
             string algorithm = hash.GetAlgorithm();

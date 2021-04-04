@@ -1,4 +1,5 @@
-﻿using InternetId.Users.Data;
+﻿using InternetId.Server.Services;
+using InternetId.Users.Data;
 using InternetId.Users.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,15 +15,18 @@ namespace InternetId.Server.Pages
     public class ProfileEditorModel : PageModel
     {
         private readonly ILogger<ProfileEditorModel> logger;
+        private readonly SignInManager signInManager;
         private readonly UsersDbContext usersDb;
         private readonly UserFinder userFinder;
 
         public ProfileEditorModel(
             ILogger<ProfileEditorModel> logger,
+            SignInManager signInManager,
             UsersDbContext usersDb,
             UserFinder userFinder)
         {
             this.logger = logger;
+            this.signInManager = signInManager;
             this.usersDb = usersDb;
             this.userFinder = userFinder;
         }
@@ -39,7 +43,7 @@ namespace InternetId.Server.Pages
 
         public async void OnGetAsync()
         {
-            var user = 
+            var user =
                 await userFinder.FindByClaimsPrincipalAsync(User) ??
                 throw new InvalidOperationException("User not found");
 
@@ -57,7 +61,13 @@ namespace InternetId.Server.Pages
                 if (ModelState.IsValid)
                 {
                     user.DisplayName = Input.DisplayName!;
-                    await usersDb.SaveChangesAsync();
+                    var changedRecords = await usersDb.SaveChangesAsync();
+
+                    if (changedRecords > 0)
+                    {
+                        await signInManager.SignOutAsync();
+                        await signInManager.SignInAsync(user);
+                    }
 
                     return RedirectToPage("Profile");
                 }

@@ -49,7 +49,7 @@ namespace InternetId.Users.Services
             if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException($"'{nameof(code)}' cannot be null or empty.", nameof(code));
             if (string.IsNullOrWhiteSpace(password)) throw new ArgumentException($"'{nameof(password)}' cannot be null or empty.", nameof(password));
 
-            var result = await credentialManager.VerifyShortcodeAsync(purpose, user.Id.ToString(), code);
+            var result = await credentialManager.VerifyShortcodeAsync(purpose, user.Id.ToString(), code, removeIfVerified: false);
 
             if (result.Outcome == VerifySecretOutcome.Verified)
             {

@@ -105,7 +105,7 @@ namespace InternetId.Credentials
         /// <param name="key"></param>
         /// <param name="shortcode"></param>
         /// <returns></returns>
-        public async Task<CredentialResult> VerifyShortcodeAsync(string purpose, string key, string shortcode)
+        public async Task<CredentialResult> VerifyShortcodeAsync(string purpose, string key, string shortcode, bool removeIfVerified)
         {
             // Shortcodes will always be lowercase
             string secret = shortcode?.ToLowerInvariant() ?? string.Empty;
@@ -113,10 +113,10 @@ namespace InternetId.Credentials
             // Remove invalid characters
             secret = string.Concat(secret.Where(ch => shortcodeTokens.Contains(ch)));
 
-            return await VerifySecretAsync(purpose, key, secret);
+            return await VerifySecretAsync(purpose, key, secret, removeIfVerified);
         }
 
-        public async Task<CredentialResult> VerifySecretAsync(string purpose, string key, string secret)
+        public async Task<CredentialResult> VerifySecretAsync(string purpose, string key, string secret, bool removeIfVerified)
         {
             if (string.IsNullOrWhiteSpace(purpose)) throw new ArgumentException($"'{nameof(purpose)}' cannot be null or whitespace.", nameof(purpose));
             if (string.IsNullOrWhiteSpace(key)) throw new ArgumentException($"'{nameof(key)}' cannot be null or whitespace.", nameof(key));
@@ -182,7 +182,7 @@ namespace InternetId.Credentials
 
                 case HasherVerificationResult.Valid:
 
-                    if (!purposeOptions.RetainAfterVerification)
+                    if (removeIfVerified)
                     {
                         await RemoveCredentialAsync(purpose, key);
                     }

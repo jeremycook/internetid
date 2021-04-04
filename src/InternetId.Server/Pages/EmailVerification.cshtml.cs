@@ -1,4 +1,5 @@
-﻿using InternetId.Server.Services;
+﻿using InternetId.Credentials;
+using InternetId.Server.Services;
 using InternetId.Users.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -26,10 +27,11 @@ namespace InternetId.Server.Pages
             this.verifyEmailService = verifyEmailService;
         }
 
-        public string? ReturnUrl { get; private set; }
 
         [BindProperty]
         public InputModel Input { get; set; } = new();
+        public string? ReturnUrl { get; private set; }
+        public bool ShowRequestCodeButton { get; private set; } = false;
 
         public class InputModel
         {
@@ -62,19 +64,36 @@ namespace InternetId.Server.Pages
                     else
                     {
                         var result = await verifyEmailService.VerifyAsync(user, Input.Code!);
-                        if (result.Outcome == Credentials.VerifySecretOutcome.Verified)
-                        {
-                            await signInManager.SignInAsync(user);
 
-                            if (string.IsNullOrWhiteSpace(returnUrl) || !Url.IsLocalUrl(returnUrl))
-                            {
-                                returnUrl = Url.Page("Profile");
-                            }
-                            return LocalRedirect(returnUrl);
-                        }
-                        else
+                        switch (result.Outcome)
                         {
-                            ModelState.AddModelError(string.Empty, result.Message);
+                            case VerifySecretOutcome.Invalid:
+                            case VerifySecretOutcome.Expired:
+
+                                ModelState.AddModelError(string.Empty, "The code is incorrect or has expired. If you think you entered it correctly then try requesting a new code.");
+                                ShowRequestCodeButton = true;
+                                break;
+
+                            case VerifySecretOutcome.Locked:
+
+                                ModelState.AddModelError(string.Empty, result.Message ?? "Too many failed attempts. Reset attempts are temporarily locked. Please try again later.");
+                                break;
+
+                            case VerifySecretOutcome.Verified:
+
+                                // Should already be logged in, just continue.
+                                if (Url.IsLocalUrl(returnUrl))
+                                {
+                                    return LocalRedirect(returnUrl);
+                                }
+                                else
+                                {
+                                    return RedirectToPage("Profile");
+                                }
+
+                            default:
+
+                                throw new NotSupportedException($"The {result.Outcome} {typeof(VerifySecretOutcome)} is not supported.");
                         }
                     }
                 }
@@ -88,38 +107,6 @@ namespace InternetId.Server.Pages
             {
                 logger.LogError(ex, $"Suppressed {ex.GetType()}: {ex.Message}");
                 ModelState.AddModelError(string.Empty, "An unexpected error occurred.");
-            }
-
-            ReturnUrl = returnUrl;
-
-            return Page();
-        }
-
-        public async Task<IActionResult> OnPostRequestCodeAsync(string? returnUrl = null)
-        {
-            ModelState.ClearValidationState("Input.Code");
-
-            if (ModelState.IsValid)
-            {
-                var user = await userFinder.FindByIdentifierAsync(Input.Identifier!);
-
-                if (user == null)
-                {
-                    ModelState.AddModelError(string.Empty, "Incorrect username/email.");
-                }
-                else if (string.IsNullOrWhiteSpace(user.Email))
-                {
-                    ModelState.AddModelError(string.Empty, "The account does not have an email address for sending a verification code to.");
-                }
-                else if (user.EmailVerified)
-                {
-                    ModelState.AddModelError(string.Empty, "The account email has already been verified.");
-                }
-                else
-                {
-                    await verifyEmailService.SendVerificationCodeAsync(user);
-                    return RedirectToPage("EmailVerification", new { identifier = Input.Identifier!, returnUrl = returnUrl });
-                }
             }
 
             ReturnUrl = returnUrl;

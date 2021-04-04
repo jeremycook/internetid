@@ -105,9 +105,7 @@ namespace InternetId.Server.Pages
                                     {
                                         await signInManager.SignInAsync(user);
 
-                                        if (!string.IsNullOrWhiteSpace(returnUrl) &&
-                                            Url.IsLocalUrl(returnUrl) &&
-                                            !returnUrl.StartsWith(Url.Page("Login")))
+                                        if (returnUrl != null && Url.IsLocalUrl(returnUrl) && !returnUrl.StartsWith(Url.Page("Login")))
                                         {
                                             return LocalRedirect(returnUrl);
                                         }

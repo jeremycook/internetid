@@ -110,7 +110,7 @@ namespace InternetId.Users.Services
 
             password = password.Trim();
 
-            var result = await credentialManager.VerifySecretAsync(purpose, user.Id.ToString(), password);
+            var result = await credentialManager.VerifySecretAsync(purpose, user.Id.ToString(), password, removeIfVerified: false);
             return result;
         }
     }

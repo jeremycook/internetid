@@ -1,6 +1,5 @@
 ﻿@page
 @model ProfileModel
-@inject Microsoft.Extensions.Options.IOptions<InternetId.Common.InternetIdOptions> internetIdOptions
 @{
     Layout = "_Layout";
     ViewBag.Title = $"Hello {Model.CurrentUser.DisplayName}";
@@ -13,7 +12,6 @@
             <div class="card-body text-center">
 
                 <h1>@ViewBag.Title</h1>
-                <p class="lead">Manage your @internetIdOptions.Value.Title</p>
                 <form class="d-inline" asp-page="/Logout">
                     <button type="submit" class="btn btn-outline-primary me-2">Logout</button>
                 </form>

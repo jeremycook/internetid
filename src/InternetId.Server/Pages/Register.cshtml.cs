@@ -105,7 +105,7 @@ namespace InternetId.Server.Pages
                         await userVerifyEmailService.SendVerificationCodeAsync(user);
                         return RedirectToPage("EmailVerification", new { identifier = user.Username, returnUrl = returnUrl });
                     }
-                    else if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl) && returnUrl.StartsWith(Url.Page("Register")))
+                    else if (returnUrl != null && Url.IsLocalUrl(returnUrl) && !returnUrl.StartsWith(Url.Page("Register")))
                     {
                         return LocalRedirect(returnUrl);
                     }
