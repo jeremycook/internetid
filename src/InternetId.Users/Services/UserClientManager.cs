@@ -10,6 +10,8 @@ namespace InternetId.Server.Services
 {
     public class UserClientManager
     {
+        private const string sub = "sub";
+
         private readonly UsersDbContext usersDb;
 
         public UserClientManager(UsersDbContext usersDb)
@@ -23,10 +25,10 @@ namespace InternetId.Server.Services
 
             var claims = new List<Claim>
             {
-                new Claim("sub", subject),
+                new Claim(sub, subject),
             };
 
-            var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, GetType().FullName, "sub", "role"));
+            var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, GetType().FullName, sub, "role"));
 
             return principal;
         }
@@ -60,7 +62,7 @@ namespace InternetId.Server.Services
 
         public async Task<User?> FindByClientPrincipalAsync(ClaimsPrincipal claimsPrincipal)
         {
-            var sub = claimsPrincipal.FindFirst("sub")?.Value;
+            var sub = claimsPrincipal.FindFirst(UserClientManager.sub)?.Value;
             var client = claimsPrincipal.FindFirst("oi_prst")?.Value;
 
             if (sub is string subject && client is string clientId)
