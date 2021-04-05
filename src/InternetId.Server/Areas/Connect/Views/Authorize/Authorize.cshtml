@@ -1,21 +1,23 @@
 ﻿@using Microsoft.Extensions.Primitives
 @model AuthorizeViewModel
 @inject Microsoft.Extensions.Options.IOptions<InternetId.Common.InternetIdOptions> internetIdOptions
+@{ 
+    ViewBag.Title = "Authorization";
+}
 
 <div class="card">
     <div class="card-body text-center">
 
-        <h1>Authorization</h1>
+        <h1>@ViewBag.Title</h1>
 
-        <p class="lead">Do you want to log into <strong>@Model.ApplicationName</strong> with your @User.Identity!.Name @internetIdOptions.Value.Title?</p>
+        <p class="lead">Do you want to log into <strong>@Model.ApplicationName</strong> with your <strong>@User.Identity!.Name</strong> @internetIdOptions.Value.Title?</p>
 
-        <form class="mb-3" asp-controller="Authorization" asp-action="Authorize" method="post">
+        <form class="mb-3" asp-action="Authorize">
             @* Flow the request parameters so they can be received by the Accept/Reject actions: *@
             @foreach (var parameter in Context.Request.HasFormContentType ? (IEnumerable<KeyValuePair<string, StringValues>>)Context.Request.Form : Context.Request.Query)
             {
                 <input type="hidden" name="@parameter.Key" value="@parameter.Value" />
             }
-
             <input class="btn btn-lg btn-success" name="submit.Accept" type="submit" value="Yes" />
             <input class="btn btn-lg btn-danger" name="submit.Deny" type="submit" value="No" />
         </form>

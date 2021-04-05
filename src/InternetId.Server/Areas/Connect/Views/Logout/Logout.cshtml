@@ -1,23 +1,40 @@
 ﻿@using Microsoft.Extensions.Primitives
-@{ 
+@inject Microsoft.Extensions.Options.IOptions<InternetId.Common.InternetIdOptions> internetIdOptions
+@{
     Layout = "_ThinLayout";
+    ViewBag.Title = "Sign out";
 }
 
 <div class="card text-center">
     <div class="card-body">
 
-        <h1>Log out</h1>
-        <p class="lead">Are you sure you want to sign out?</p>
+        <h1>@ViewBag.Title</h1>
 
-        <form asp-controller="Authorization" asp-action="Logout" method="post">
-            @* Flow the request parameters so they can be received by the LogoutPost action: *@
-            @foreach (var parameter in Context.Request.HasFormContentType ? (IEnumerable<KeyValuePair<string, StringValues>>)Context.Request.Form : Context.Request.Query)
-            {
-                <input type="hidden" name="@parameter.Key" value="@parameter.Value" />
-            }
+        @if (User.Identity!.IsAuthenticated)
+        {
+            <p class="lead">Sign out of @internetIdOptions.Value.Title?</p>
+            <form class="mb-3" method="post">
+                @* Flow the request parameters so they can be received by the LogoutPost action: *@
+                @foreach (var parameter in Context.Request.HasFormContentType ? (IEnumerable<KeyValuePair<string, StringValues>>)Context.Request.Form : Context.Request.Query)
+                {
+                    <input type="hidden" name="@parameter.Key" value="@parameter.Value" />
+                }
+                <button type="submit" class="btn btn-primary">Confirm sign out</button>
+                <a href="javascript:history.back()" class="btn btn-outline-primary">Go back</a>
+            </form>
+        }
+        else
+        {
+            <p class="lead">You are logged out of @internetIdOptions.Value.Title</p>
+            <p>
+                <a class="btn btn-outline-primary" asp-page="/Login">Login</a>
+                <a href="javascript:history.back()" class="btn btn-outline-primary">Go back</a>
+            </p>
+        }
 
-            <input class="btn btn-lg btn-success" name="Confirm" type="submit" value="Yes" />
-        </form>
+        <p>
+            Thank you for using <a href="~/">@internetIdOptions.Value.Title</a>
+        </p>
 
     </div>
 </div>

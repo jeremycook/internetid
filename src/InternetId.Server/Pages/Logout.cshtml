@@ -1,32 +1,35 @@
 ﻿@page
+@inject Microsoft.Extensions.Options.IOptions<InternetId.Common.InternetIdOptions> internetIdOptions
 @model LogoutModel
 @{
-    ViewData["Title"] = "Log out";
+    ViewData["Title"] = "Sign out";
 }
 
 <div class="card">
     <div class="card-body text-center">
 
         <h1>@ViewData["Title"]</h1>
+        <p class="lead">Sign out of @internetIdOptions.Value.Title?</p>
 
         @if (User.Identity!.IsAuthenticated)
         {
             <form class="mb-3" method="post">
-                <button type="submit" class="btn btn-primary">Confirm logout</button>
+                <button type="submit" class="btn btn-primary">Confirm sign out</button>
+                <a href="javascript:history.back()" class="btn btn-outline-primary">Back</a>
             </form>
-            <p>
-                <a class="btn btn-outline-primary" href="~/">Home</a>
-                <a class="btn btn-outline-primary" asp-page="/Profile" title="Manage">Profile</a>
-            </p>
         }
         else
         {
             <p class="alert alert-info">You are logged out.</p>
             <p>
-                <a class="btn btn-outline-primary" href="~/">Home</a>
                 <a class="btn btn-outline-primary" asp-page="/Login">Login</a>
+                <a href="javascript:history.back()" class="btn btn-outline-primary">Back</a>
             </p>
         }
+
+        <p>
+            <a href="~/">Thank you for using @internetIdOptions.Value.Title</a>
+        </p>
 
     </div>
 </div>
