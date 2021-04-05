@@ -29,9 +29,14 @@
         <div class="card">
             <table class="table">
                 <tr>
+                    <th>Username</th>
+                    <td>@Model.CurrentUser.Username</td>
+                    <td></td>
+                </tr>
+                <tr>
                     <th>Display Name</th>
                     <td>@Model.CurrentUser.DisplayName</td>
-                    <td class="text-end"><a asp-page="ProfileEditor" asp-fragment="Input_DisplayName">Change<span class="visually-hidden"> your display name</span></a></td>
+                    <td class="text-end"><a asp-page="ProfileManager">Change<span class="visually-hidden"> your display name</span></a></td>
                 </tr>
                 @if (!string.IsNullOrWhiteSpace(Model.CurrentUser.Email))
                 {

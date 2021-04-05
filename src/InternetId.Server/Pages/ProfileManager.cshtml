@@ -1,7 +1,7 @@
 ﻿@page
-@model ProfileEditorModel
+@model ProfileManagerModel
 @{
-    ViewData["Title"] = "Profile editor";
+    ViewData["Title"] = "Sign Up";
 }
 
 <div class="card mb-3">
@@ -9,7 +9,7 @@
 
         <div class="text-center">
             <h1>@ViewData["Title"]</h1>
-            <p class="lead">Update your profile</p>
+            <p class="lead">Edit your profile</p>
         </div>
 
         <form method="post">
@@ -22,9 +22,8 @@
                 </div>
 
             </fieldset>
-            <div class="d-flex justify-content-between">
-                <button type="submit" class="btn btn-primary">Save changes</button>
-                <a asp-page="Profile" class="btn btn-outline-primary">Cancel</a>
+            <div>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
             </div>
         </form>
 

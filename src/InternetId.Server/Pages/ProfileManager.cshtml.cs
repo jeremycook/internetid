@@ -4,6 +4,7 @@ using InternetId.Users.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.ComponentModel.DataAnnotations;
@@ -12,15 +13,15 @@ using System.Threading.Tasks;
 namespace InternetId.Server.Pages
 {
     [Authorize]
-    public class ProfileEditorModel : PageModel
+    public class ProfileManagerModel : PageModel
     {
-        private readonly ILogger<ProfileEditorModel> logger;
+        private readonly ILogger<ProfileManagerModel> logger;
         private readonly SignInManager signInManager;
         private readonly UsersDbContext usersDb;
         private readonly UserFinder userFinder;
 
-        public ProfileEditorModel(
-            ILogger<ProfileEditorModel> logger,
+        public ProfileManagerModel(
+            ILogger<ProfileManagerModel> logger,
             SignInManager signInManager,
             UsersDbContext usersDb,
             UserFinder userFinder)
@@ -41,29 +42,33 @@ namespace InternetId.Server.Pages
             public string? DisplayName { get; set; }
         }
 
-        public async void OnGetAsync()
+        public async Task<ActionResult> OnGetAsync()
         {
-            var user =
-                await userFinder.FindByLocalPrincipalAsync(User) ??
-                throw new InvalidOperationException("User not found");
+            if (await userFinder.FindByLocalPrincipalAsync(User) is not User user)
+            {
+                return NotFound();
+            }
 
             Input.DisplayName = user.DisplayName;
+
+            return Page();
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
-            var user =
-                await userFinder.FindByLocalPrincipalAsync(User) ??
-                throw new InvalidOperationException("User not found");
-
             try
             {
+                if (await userFinder.FindByLocalPrincipalAsync(User) is not User user)
+                {
+                    return NotFound();
+                }
+
                 if (ModelState.IsValid)
                 {
-                    user.DisplayName = Input.DisplayName!;
-                    var changedRecords = await usersDb.SaveChangesAsync();
+                    user.DisplayName = Input.DisplayName;
+                    var changes = await usersDb.SaveChangesAsync();
 
-                    if (changedRecords > 0)
+                    if (changes > 0)
                     {
                         await signInManager.RefreshSignInAsync(user);
                     }
