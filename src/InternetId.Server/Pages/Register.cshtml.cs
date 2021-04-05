@@ -19,20 +19,20 @@ namespace InternetId.Server.Pages
         private readonly SignInManager signInManager;
         private readonly UsersDbContext usersDb;
         private readonly PasswordService userPasswordService;
-        private readonly EmailService userVerifyEmailService;
+        private readonly EmailService emailService;
 
         public RegisterModel(
             ILogger<RegisterModel> logger,
             SignInManager signInManager,
             UsersDbContext usersDb,
             PasswordService userPasswordService,
-            EmailService userVerifyEmailService)
+            EmailService emailService)
         {
             this.logger = logger;
             this.signInManager = signInManager;
             this.usersDb = usersDb;
             this.userPasswordService = userPasswordService;
-            this.userVerifyEmailService = userVerifyEmailService;
+            this.emailService = emailService;
         }
 
         [BindProperty]
@@ -63,8 +63,8 @@ namespace InternetId.Server.Pages
             public string? ConfirmPassword { get; set; }
 
             [Required]
-            [Display(Name = "Display name")]
-            public string? DisplayName { get; set; }
+            [Display(Name = "Name")]
+            public string? Name { get; set; }
 
             [EmailAddress]
             [Display(Name = "Email")]
@@ -93,7 +93,7 @@ namespace InternetId.Server.Pages
                     var user = new User
                     {
                         Username = Input.Username!,
-                        DisplayName = Input.DisplayName!,
+                        Name = Input.Name!,
                         Email = Input.Email,
                     };
                     usersDb.Users.Add(user);
@@ -107,7 +107,8 @@ namespace InternetId.Server.Pages
 
                     if (user.Email != null)
                     {
-                        return RedirectToPage("EmailVerificationRequest", new { identifier = user.Username, returnUrl = returnUrl });
+                        await emailService.SendVerificationCodeAsync(user);
+                        return RedirectToPage("EmailVerification", new { identifier = user.Username, returnUrl = returnUrl });
                     }
                     else if (returnUrl != null && Url.IsLocalUrl(returnUrl) && !returnUrl.StartsWith(Url.Page("Register")))
                     {

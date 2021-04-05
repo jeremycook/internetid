@@ -23,9 +23,7 @@ namespace InternetId.Users.Data
         public string LowercaseUsername { get => Username?.ToLowerInvariant()!; private set { } }
 
         [Required]
-        [Display(Name = "Display name")]
-        [Obsolete("TODO: Change to Full Name")]
-        public string DisplayName { get; set; } = null!;
+        public string Name { get; set; } = null!;
 
         [DataType(DataType.EmailAddress)]
         public string? Email { get => _email; set => _email = value?.Trim(); }

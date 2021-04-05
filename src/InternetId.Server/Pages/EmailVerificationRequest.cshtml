@@ -9,8 +9,9 @@
 
         <div class="text-center">
             <h1>@ViewData["Title"]</h1>
-            <p class="lead">Request an email verification code</p>
         </div>
+
+        <p class="alert alert-info">We need to verify your email address. Submit this form and we'll send you an email verification code.</p>
 
         <form asp-route-returnUrl="@Model.ReturnUrl" method="post">
             <div asp-validation-summary="All" class="text-danger"></div>

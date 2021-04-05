@@ -38,8 +38,8 @@ namespace InternetId.Server.Pages
         public class InputModel
         {
             [Required]
-            [Display(Name = "Display name")]
-            public string? DisplayName { get; set; }
+            [Display(Name = "Name")]
+            public string? Name { get; set; }
         }
 
         public async Task<ActionResult> OnGetAsync()
@@ -49,7 +49,7 @@ namespace InternetId.Server.Pages
                 return NotFound();
             }
 
-            Input.DisplayName = user.DisplayName;
+            Input.Name = user.Name;
 
             return Page();
         }
@@ -65,7 +65,7 @@ namespace InternetId.Server.Pages
 
                 if (ModelState.IsValid)
                 {
-                    user.DisplayName = Input.DisplayName;
+                    user.Name = Input.Name;
                     var changes = await usersDb.SaveChangesAsync();
 
                     if (changes > 0)

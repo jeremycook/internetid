@@ -26,7 +26,7 @@ namespace InternetId.Server.Services
             {
                 new Claim("sub", user.Id.ToString()),
                 new Claim("username", user.Username),
-                new Claim("name", user.DisplayName),
+                new Claim("name", user.Name),
             };
 
             var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, AuthenticationScheme, "username", "role"));

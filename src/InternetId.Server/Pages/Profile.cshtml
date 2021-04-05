@@ -2,7 +2,7 @@
 @model ProfileModel
 @{
     Layout = "_Layout";
-    ViewBag.Title = $"Hello {Model.CurrentUser.DisplayName}";
+    ViewBag.Title = $"Hello {Model.CurrentUser.Name}";
 }
 
 <div class="row justify-content-around">
@@ -34,8 +34,8 @@
                     <td></td>
                 </tr>
                 <tr>
-                    <th>Display Name</th>
-                    <td>@Model.CurrentUser.DisplayName</td>
+                    <th>Name</th>
+                    <td>@Model.CurrentUser.Name</td>
                     <td class="text-end"><a asp-page="ProfileManager">Change<span class="visually-hidden"> your display name</span></a></td>
                 </tr>
                 @if (!string.IsNullOrWhiteSpace(Model.CurrentUser.Email))

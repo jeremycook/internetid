@@ -70,7 +70,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
             if (User.HasScope(Scopes.Profile))
             {
                 claims[Claims.PreferredUsername] = user.Username;
-                claims[Claims.Name] = user.DisplayName;
+                claims[Claims.Name] = user.Name;
 
                 var profileClaims = _scopeClaims[Scopes.Profile];
                 foreach (var claim in userClaims.Where(o => profileClaims.Contains(o.Type)))
