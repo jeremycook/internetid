@@ -7,7 +7,7 @@
 
         <h1>Authorization</h1>
 
-        <p class="lead text-left">Do you want to log into <strong>@Model.ApplicationName</strong> with your @internetIdOptions.Value.Title?</p>
+        <p class="lead text-left">Do you want to log into <strong>@Model.ApplicationName</strong> with your @internetIdOptions.Value.Title as @User.Identity.Name?</p>
 
         <form class="mb-3" asp-controller="Authorization" asp-action="Authorize" method="post">
             @* Flow the request parameters so they can be received by the Accept/Reject actions: *@
@@ -22,7 +22,7 @@
 
         <hr />
 
-        <p>The following scopes requested were requested by @Model.ApplicationName: @Model.Scope</p>
+        <p>@Model.ApplicationName requested these scopes: @Model.Scope</p>
 
     </div>
 </div>

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Builder;
@@ -42,6 +43,7 @@ namespace InternetId.MvcClient
                 // the different endpoints URIs or the token validation parameters explicitly.
                 options.Authority = "https://localhost:44313/";
 
+                options.Scope.Add("profile");
                 options.Scope.Add("email");
                 options.Scope.Add("roles");
 
@@ -51,7 +53,12 @@ namespace InternetId.MvcClient
                     InboundClaimTypeMap = new Dictionary<string, string>()
                 };
 
-                options.TokenValidationParameters.NameClaimType = "name";
+                // WARNGING: This accepts all claims as-is!
+                options.ClaimActions.MapAll();
+                // Alternatively...
+                // options.ClaimActions.MapAllExcept("iss", "nbf", "exp", "aud", "nonce", "iat", "c_hash", "role");
+
+                options.TokenValidationParameters.NameClaimType = "preferred_username";
                 options.TokenValidationParameters.RoleClaimType = "role";
             });
 
