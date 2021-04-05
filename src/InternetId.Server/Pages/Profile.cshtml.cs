@@ -2,6 +2,7 @@
 using InternetId.Users.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System;
 using System.Threading.Tasks;
 
 namespace InternetId.Server.Pages
@@ -20,7 +21,9 @@ namespace InternetId.Server.Pages
 
         public async Task OnGetAsync()
         {
-            CurrentUser = (await userFinder.FindByLocalPrincipalAsync(User))!;
+            CurrentUser =
+                await userFinder.FindByLocalPrincipalAsync(User) ??
+                throw new InvalidOperationException("User not found");
         }
     }
 }

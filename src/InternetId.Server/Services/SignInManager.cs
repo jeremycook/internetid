@@ -14,15 +14,13 @@ namespace InternetId.Server.Services
         public const string AuthenticationScheme = CookieAuthenticationDefaults.AuthenticationScheme;
 
         private readonly IHttpContextAccessor httpContextAccessor;
-        private readonly UsersDbContext usersDb;
 
-        public SignInManager(IHttpContextAccessor httpContextAccessor, UsersDbContext usersDb)
+        public SignInManager(IHttpContextAccessor httpContextAccessor)
         {
             this.httpContextAccessor = httpContextAccessor;
-            this.usersDb = usersDb;
         }
 
-        public Task<ClaimsPrincipal> CreateLocalPrincipalAsync(User user)
+        public Task<ClaimsPrincipal> CreatePrincipalAsync(User user)
         {
             var claims = new List<Claim>
             {
@@ -30,14 +28,6 @@ namespace InternetId.Server.Services
                 new Claim("username", user.Username),
                 new Claim("name", user.DisplayName),
             };
-
-            if (user.EmailVerified && !string.IsNullOrWhiteSpace(user.Email))
-            {
-                claims.Add(new Claim("email", user.Email));
-                claims.Add(new Claim("email_verified", "true"));
-            }
-
-            // TODO: Provide a hook for contributing/modifying claims.
 
             var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, AuthenticationScheme, "username", "role"));
 
@@ -68,7 +58,7 @@ namespace InternetId.Server.Services
                 httpContextAccessor.HttpContext ??
                 throw new InvalidOperationException("Unable to sign in the user. The IHttpContextAccessor.HttpContext is unavailable.");
 
-            var principal = await CreateLocalPrincipalAsync(user);
+            var principal = await CreatePrincipalAsync(user);
 
             var authenticationProperties = new AuthenticationProperties
             {

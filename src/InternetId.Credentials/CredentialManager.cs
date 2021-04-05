@@ -6,7 +6,6 @@ using Microsoft.Extensions.Options;
 using System;
 using System.Linq;
 using System.Security.Cryptography;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace InternetId.Credentials

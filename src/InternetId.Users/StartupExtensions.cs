@@ -16,11 +16,11 @@ namespace Microsoft.Extensions.DependencyInjection
 
             services.AddDbContext<UsersDbContext>(usersDbContextOptionsBuilder);
 
-            services.AddScoped<UserFinder>();
-            services.AddScoped<UserClientManager>();
             services.AddScoped<EmailService>();
-            services.AddScoped<PasswordService>();
             services.AddScoped<PasswordResetService>();
+            services.AddScoped<PasswordService>();
+            services.AddScoped<UserClientManager>();
+            services.AddScoped<UserFinder>();
         }
     }
 }
