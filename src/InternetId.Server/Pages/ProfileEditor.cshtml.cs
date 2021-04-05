@@ -65,8 +65,7 @@ namespace InternetId.Server.Pages
 
                     if (changedRecords > 0)
                     {
-                        await signInManager.SignOutAsync();
-                        await signInManager.SignInAsync(user);
+                        await signInManager.RefreshSignInAsync(user);
                     }
 
                     return RedirectToPage("Profile");

@@ -1,6 +1,7 @@
 ﻿using InternetId.OpenIddict.Data;
 using InternetId.Server;
 using InternetId.Server.Services;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using System;
 using static OpenIddict.Abstractions.OpenIddictConstants;
@@ -15,7 +16,11 @@ namespace Microsoft.Extensions.DependencyInjection
 
             services.AddScoped<SignInManager>();
 
-            services.AddAuthentication(SignInManager.AuthenticationScheme)
+            services
+                .AddAuthentication(options =>
+                {
+                    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                })
                 .AddCookie(options =>
                 {
                     options.Cookie.SameSite = AspNetCore.Http.SameSiteMode.Strict;

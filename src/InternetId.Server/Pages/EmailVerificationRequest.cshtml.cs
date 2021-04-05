@@ -14,16 +14,16 @@ namespace InternetId.Server.Pages
     {
         private readonly ILogger<EmailVerificationRequestModel> logger;
         private readonly UserFinder userFinder;
-        private readonly PasswordResetService passwordResetService;
+        private readonly EmailService emailService;
 
         public EmailVerificationRequestModel(
             ILogger<EmailVerificationRequestModel> logger,
             UserFinder userFinder,
-            PasswordResetService passwordResetService)
+            EmailService emailService)
         {
             this.logger = logger;
             this.userFinder = userFinder;
-            this.passwordResetService = passwordResetService;
+            this.emailService = emailService;
         }
 
         [BindProperty]
@@ -56,8 +56,7 @@ namespace InternetId.Server.Pages
                     {
                         if (!string.IsNullOrWhiteSpace(user.Email))
                         {
-                            await passwordResetService.SendPasswordResetCodeAsync(user);
-
+                            await emailService.SendVerificationCodeAsync(user);
                             return RedirectToPage("EmailVerification", new { identifier = Input.Identifier, returnUrl = returnUrl });
                         }
                         else

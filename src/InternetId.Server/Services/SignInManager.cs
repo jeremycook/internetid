@@ -1,10 +1,9 @@
 ﻿using InternetId.Users.Data;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
@@ -12,7 +11,7 @@ namespace InternetId.Server.Services
 {
     public class SignInManager
     {
-        public const string AuthenticationScheme = "Cookies";
+        public const string AuthenticationScheme = CookieAuthenticationDefaults.AuthenticationScheme;
 
         private readonly IHttpContextAccessor httpContextAccessor;
         private readonly UsersDbContext usersDb;
@@ -90,6 +89,12 @@ namespace InternetId.Server.Services
                 throw new InvalidOperationException("Unable to sign in the user. The IHttpContextAccessor.HttpContext is unavailable.");
 
             await httpContext.SignOutAsync(AuthenticationScheme);
+        }
+
+        public async Task RefreshSignInAsync(User user)
+        {
+            await SignOutAsync();
+            await SignInAsync(user);
         }
     }
 }

@@ -1,4 +1,4 @@
-using InternetId.Server.Services;
+using InternetId.Users.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,6 +14,7 @@ using static OpenIddict.Abstractions.OpenIddictConstants;
 namespace InternetId.Server.Areas.Connect.Controllers
 {
     [Area("Connect")]
+    [Route("[area]/[controller]")]
     public class UserinfoController : Controller
     {
         // See:
@@ -30,10 +31,12 @@ namespace InternetId.Server.Areas.Connect.Controllers
         private readonly UserClientManager userClientManager;
 
         public UserinfoController(UserClientManager userClientManager)
-            => this.userClientManager = userClientManager;
+        {
+            this.userClientManager = userClientManager;
+        }
 
         [Authorize(AuthenticationSchemes = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme)]
-        [HttpGet("~/connect/userinfo"), HttpPost("~/connect/userinfo"), Produces("application/json")]
+        [HttpGet, HttpPost, Produces("application/json")]
         public async Task<IActionResult> Userinfo()
         {
             var user = await userClientManager.FindByClientPrincipalAsync(User);

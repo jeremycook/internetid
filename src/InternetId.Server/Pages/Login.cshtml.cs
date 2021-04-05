@@ -86,33 +86,22 @@ namespace InternetId.Server.Pages
 
                             case VerifySecretOutcome.Verified:
 
-                                if (!await signInManager.CanSignInAsync(user))
+                                await signInManager.RefreshSignInAsync(user);
+
+                                if (!string.IsNullOrWhiteSpace(user.Email) && !user.EmailVerified)
                                 {
-                                    ModelState.AddModelError(string.Empty, "The user cannot be signed in.");
-                                    break;
+                                    // Ask them to verify their email address.
+                                    return RedirectToPage("EmailVerificationRequest", new { identifier = Input.Identifier, returnUrl = returnUrl });
                                 }
                                 else
                                 {
-                                    if (!string.IsNullOrWhiteSpace(user.Email) && !user.EmailVerified)
+                                    if (returnUrl != null && Url.IsLocalUrl(returnUrl) && !returnUrl.StartsWith(Url.Page("Login")))
                                     {
-                                        // Sign them in but keep asking them to verify their email address.
-                                        await signInManager.SignInAsync(user);
-
-                                        await verifyEmailService.SendVerificationCodeAsync(user);
-                                        return RedirectToPage("EmailVerification", new { identifier = Input.Identifier, returnUrl = returnUrl });
+                                        return LocalRedirect(returnUrl);
                                     }
                                     else
                                     {
-                                        await signInManager.SignInAsync(user);
-
-                                        if (returnUrl != null && Url.IsLocalUrl(returnUrl) && !returnUrl.StartsWith(Url.Page("Login")))
-                                        {
-                                            return LocalRedirect(returnUrl);
-                                        }
-                                        else
-                                        {
-                                            return RedirectToPage("Profile");
-                                        }
+                                        return RedirectToPage("Profile");
                                     }
                                 }
 

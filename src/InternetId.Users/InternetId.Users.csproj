@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="OpenIddict.Abstractions" Version="3.0.2" />
     <PackageReference Include="PwnedPasswords.Client" Version="1.2.0" />
     <PackageReference Include="System.Text.Json" Version="5.0.1" />
   </ItemGroup>

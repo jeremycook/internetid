@@ -14,43 +14,40 @@ using OpenIddict.Server.AspNetCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Claims;
 using System.Threading.Tasks;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace InternetId.Server.Areas.Connect.Controllers
 {
     [Area("Connect")]
-    public class AuthorizationController : Controller
+    [Route("[area]/[controller]")]
+    public class AuthorizeController : Controller
     {
         private readonly IOpenIddictApplicationManager applicationManager;
         private readonly IOpenIddictAuthorizationManager authorizationManager;
         private readonly IOpenIddictScopeManager scopeManager;
         private readonly UserFinder userFinder;
         private readonly UserClientManager userClientManager;
-        private readonly SignInManager signInManager;
-        private readonly ILogger<AuthorizationController> logger;
+        private readonly ILogger<AuthorizeController> logger;
 
-        public AuthorizationController(
+        public AuthorizeController(
             IOpenIddictApplicationManager applicationManager,
             IOpenIddictAuthorizationManager authorizationManager,
             IOpenIddictScopeManager scopeManager,
             UserFinder userFinder,
             UserClientManager userClientManager,
-            SignInManager signInManager,
-            ILogger<AuthorizationController> logger)
+            ILogger<AuthorizeController> logger)
         {
             this.applicationManager = applicationManager;
             this.authorizationManager = authorizationManager;
             this.scopeManager = scopeManager;
             this.userFinder = userFinder;
             this.userClientManager = userClientManager;
-            this.signInManager = signInManager;
             this.logger = logger;
         }
 
-        [HttpGet("~/connect/authorize")]
-        [HttpPost("~/connect/authorize")]
+        [HttpGet]
+        [HttpPost]
         [IgnoreAntiforgeryToken]
         public async Task<IActionResult> Authorize()
         {
@@ -59,9 +56,10 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
 
             // Retrieve the user principal stored in the authentication cookie.
-            // If it can't be extracted, redirect the user to the login page.
             var result = await HttpContext.AuthenticateAsync(SignInManager.AuthenticationScheme);
-            if (result == null || !result.Succeeded || result.Principal == null)
+
+            // If it can't be extracted, redirect the user to the login page.
+            if (result?.Principal == null || !result.Succeeded)
             {
                 // If the client application requested promptless authentication,
                 // return an error indicating that the user is not logged in.
@@ -137,7 +135,10 @@ namespace InternetId.Server.Areas.Connect.Controllers
                     });
             }
 
-            string clientId = request.ClientId ?? throw new InvalidOperationException("The client identifier cannot be null.");
+            if (request.ClientId is null)
+            {
+                throw new InvalidOperationException($"The request '{nameof(request.ClientId)}' cannot be null.");
+            }
 
             // Retrieve the profile of the logged in user.
             var user =
@@ -146,14 +147,14 @@ namespace InternetId.Server.Areas.Connect.Controllers
 
             // Retrieve the application details from the database.
             var application =
-                await applicationManager.FindByClientIdAsync(clientId) ??
+                await applicationManager.FindByClientIdAsync(request.ClientId) ??
                 throw new InvalidOperationException("Details concerning the calling client application cannot be found.");
 
             string applicationId =
                 await applicationManager.GetIdAsync(application) ??
-                throw new InvalidOperationException("The application ID could not be determined.");
+                throw new InvalidOperationException("The application ID cannot be determined.");
 
-            string subject = await userClientManager.GetOrCreateClientSubjectAsync(user, clientId);
+            string subject = await userClientManager.GetOrCreateClientSubjectAsync(user, request.ClientId);
 
             // Retrieve the permanent authorizations associated with the user and the calling client application.
             var authorizations = await authorizationManager.FindAsync(
@@ -182,7 +183,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 case ConsentTypes.Implicit:
                 case ConsentTypes.External when authorizations.Any():
                 case ConsentTypes.Explicit when authorizations.Any() && !request.HasPrompt(Prompts.Consent):
-                    var principal = await userClientManager.CreateClientPrincipalAsync(user, clientId);
+                    var principal = await userClientManager.CreateClientPrincipalAsync(user, request.ClientId);
 
                     // Note: in this sample, the granted scopes match the requested scope
                     // but you may want to allow the user to uncheck specific scopes.
@@ -207,7 +208,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
 
                     foreach (var claim in principal.Claims)
                     {
-                        claim.SetDestinations(GetDestinations(claim, principal));
+                        claim.SetDestinations(userClientManager.GetDestinations(claim, principal));
                     }
 
                     return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
@@ -227,16 +228,19 @@ namespace InternetId.Server.Areas.Connect.Controllers
 
                 // In every other case, render the consent form.
                 default:
-                    return View(new AuthorizeViewModel
-                    {
-                        ApplicationName = await applicationManager.GetDisplayNameAsync(application) ?? throw new InvalidOperationException("The application display name cannot be null."),
-                        Scope = request.Scope ?? throw new InvalidOperationException("The request scope cannot be null.")
-                    });
+                    return View(new AuthorizeViewModel(
+                        applicationName:
+                            await applicationManager.GetDisplayNameAsync(application) ??
+                            throw new InvalidOperationException("The application display name cannot be null."),
+                        scope:
+                            request.Scope ??
+                            throw new InvalidOperationException("The request scope cannot be null.")
+                    ));
             }
         }
 
         [Authorize, FormValueRequired("submit.Accept")]
-        [HttpPost("~/connect/authorize")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Accept()
         {
@@ -244,7 +248,10 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 HttpContext.GetOpenIddictServerRequest() ??
                 throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
 
-            string clientId = request.ClientId ?? throw new InvalidOperationException("The client identifier cannot be null.");
+            if (request.ClientId is null)
+            {
+                throw new InvalidOperationException($"The request '{nameof(request.ClientId)}' cannot be null.");
+            }
 
             // Retrieve the profile of the logged in user.
             var user =
@@ -253,14 +260,14 @@ namespace InternetId.Server.Areas.Connect.Controllers
 
             // Retrieve the application details from the database.
             var application =
-                await applicationManager.FindByClientIdAsync(clientId) ??
+                await applicationManager.FindByClientIdAsync(request.ClientId) ??
                 throw new InvalidOperationException("Details concerning the calling client application cannot be found.");
 
             string applicationId =
                 await applicationManager.GetIdAsync(application) ??
                 throw new InvalidOperationException("The client application ID could not be determined.");
 
-            string subject = await userClientManager.GetOrCreateClientSubjectAsync(user, clientId);
+            string subject = await userClientManager.GetOrCreateClientSubjectAsync(user, request.ClientId);
 
             // Retrieve the permanent authorizations associated with the user and the calling client application.
             var authorizations = await authorizationManager
@@ -289,7 +296,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
                     }));
             }
 
-            var principal = await userClientManager.CreateClientPrincipalAsync(user, clientId);
+            var principal = await userClientManager.CreateClientPrincipalAsync(user, request.ClientId);
 
             // Note: in this sample, the granted scopes match the requested scope
             // but you may want to allow the user to uncheck specific scopes.
@@ -314,7 +321,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
 
             foreach (var claim in principal.Claims)
             {
-                claim.SetDestinations(GetDestinations(claim, principal));
+                claim.SetDestinations(userClientManager.GetDestinations(claim, principal));
             }
 
             // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
@@ -322,131 +329,13 @@ namespace InternetId.Server.Areas.Connect.Controllers
         }
 
         [Authorize, FormValueRequired("submit.Deny")]
-        [HttpPost("~/connect/authorize")]
+        [HttpPost]
         [IgnoreAntiforgeryToken]
-        // Notify OpenIddict that the authorization grant has been denied by the resource owner
-        // to redirect the user agent to the client application using the appropriate responsemode.
-        public IActionResult Deny() => Forbid(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
-
-        [HttpGet("~/connect/logout")]
-        public IActionResult Logout() => View();
-
-        [ActionName(nameof(Logout))]
-        [HttpPost("~/connect/logout")]
-        [ValidateAntiForgeryToken]
-        public IActionResult LogoutPost()
+        public IActionResult Deny()
         {
-            // Note that if any identity providers were used to authenticate then
-            // a call should be made at this point to clean up those local and external cookies.
-
-            // Returning a SignOutResult will ask OpenIddict to redirect the user agent
-            // to the postlogoutredirecturi specified by the client application or to
-            // the RedirectUri specified in the authentication properties if none was set.
-            return SignOut(
-                authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
-                properties: new AuthenticationProperties
-                {
-                    RedirectUri = "/"
-                });
-        }
-
-        [HttpPost("~/connect/token")]
-        [Produces("application/json")]
-        public async Task<IActionResult> Exchange()
-        {
-            var request = HttpContext.GetOpenIddictServerRequest() ??
-                throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
-
-            if (request.IsAuthorizationCodeGrantType() || request.IsRefreshTokenGrantType())
-            {
-                // Retrieve the claims principal stored in the authorization code/device code/refresh token.
-                var clientPrincipal =
-                    (await HttpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme)).Principal ??
-                    throw new InvalidOperationException("The client principal details cannot be retrieved.");
-
-                // Retrieve the user profile corresponding to the authorization code/refresh token.
-                // Note: if you want to automatically invalidate the authorization code/refresh token
-                // when the user password/roles change, use the following line instead:
-                // var user = signInManager.ValidateSecurityStampAsync(info.Principal);
-                var user = await userClientManager.FindByClientPrincipalAsync(clientPrincipal);
-                if (user == null)
-                {
-                    return Forbid(
-                        authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
-                        properties: new AuthenticationProperties(new Dictionary<string, string?>
-                        {
-                            [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
-                            [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The token is no longer valid."
-                        }));
-                }
-
-                // Ensure the user is still allowed to sign in.
-                if (!await signInManager.CanSignInAsync(user))
-                {
-                    return Forbid(
-                        authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
-                        properties: new AuthenticationProperties(new Dictionary<string, string?>
-                        {
-                            [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
-                            [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The user is no longer allowed to sign in."
-                        }));
-                }
-
-                foreach (var claim in clientPrincipal.Claims)
-                {
-                    claim.SetDestinations(GetDestinations(claim, clientPrincipal));
-                }
-
-                // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
-                return SignIn(clientPrincipal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
-            }
-
-            throw new InvalidOperationException("The specified grant type is not supported.");
-        }
-
-        private IEnumerable<string> GetDestinations(Claim claim, ClaimsPrincipal principal)
-        {
-            // Note: by default, claims are NOT automatically included in the access and identity tokens.
-            // To allow OpenIddict to serialize them, you must attach them to a destination that specifies
-            // whether they should be included in access tokens, in identity tokens or in both.
-
-            // TODO: suppress all
-
-            switch (claim.Type)
-            {
-                case Claims.Name:
-                    yield return Destinations.AccessToken;
-
-                    if (principal.HasScope(Scopes.Profile))
-                        yield return Destinations.IdentityToken;
-
-                    yield break;
-
-                case Claims.Email:
-                    yield return Destinations.AccessToken;
-
-                    if (principal.HasScope(Scopes.Email))
-                        yield return Destinations.IdentityToken;
-
-                    yield break;
-
-                case Claims.Role:
-                    yield return Destinations.AccessToken;
-
-                    if (principal.HasScope(Scopes.Roles))
-                        yield return Destinations.IdentityToken;
-
-                    yield break;
-
-                // Never include the secret values in the access and identity tokens.
-                case "example_secret":
-                case "another_example_secret":
-                    yield break;
-
-                default:
-                    yield return Destinations.AccessToken;
-                    yield break;
-            }
+            // Notify OpenIddict that the authorization grant has been denied by the resource owner
+            // to redirect the user agent to the client application using the appropriate responsemode.
+            return Forbid(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
     }
 }

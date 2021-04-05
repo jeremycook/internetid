@@ -103,13 +103,11 @@ namespace InternetId.Server.Pages
 
                     await tx.CommitAsync();
 
-                    // Good to go, sign in
-                    await signInManager.SignInAsync(user);
+                    await signInManager.RefreshSignInAsync(user);
 
                     if (user.Email != null)
                     {
-                        await userVerifyEmailService.SendVerificationCodeAsync(user);
-                        return RedirectToPage("EmailVerification", new { identifier = user.Username, returnUrl = returnUrl });
+                        return RedirectToPage("EmailVerificationRequest", new { identifier = user.Username, returnUrl = returnUrl });
                     }
                     else if (returnUrl != null && Url.IsLocalUrl(returnUrl) && !returnUrl.StartsWith(Url.Page("Register")))
                     {
