@@ -23,47 +23,6 @@ namespace InternetId.Server.Services
             this.usersDb = usersDb;
         }
 
-        public async Task<ClaimsPrincipal> CreateClientPrincipalAsync(User user, string clientId)
-        {
-            string? subject = await GetOrCreateClientSubjectAsync(user, clientId);
-
-            var claims = new List<Claim>
-            {
-                new Claim("sub", subject),
-            };
-
-            var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, AuthenticationScheme, "sub", "role"));
-
-            return principal;
-        }
-
-        public async Task<string> GetOrCreateClientSubjectAsync(User user, string clientId)
-        {
-            string? subject = await GetClientSubjectAsync(user, clientId);
-
-            if (subject is null)
-            {
-                subject = Guid.NewGuid().ToString();
-                usersDb.UserClients.Add(new UserClient
-                {
-                    UserId = user.Id,
-                    ClientId = clientId,
-                    Subject = subject
-                });
-                await usersDb.SaveChangesAsync();
-            }
-
-            return subject;
-        }
-
-        public async Task<string?> GetClientSubjectAsync(User user, string clientId)
-        {
-            return await usersDb.UserClients
-                .Where(o => o.UserId == user.Id && o.ClientId == clientId)
-                .Select(o => o.Subject)
-                .SingleOrDefaultAsync();
-        }
-
         public Task<ClaimsPrincipal> CreateLocalPrincipalAsync(User user)
         {
             var claims = new List<Claim>

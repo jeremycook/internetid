@@ -1,4 +1,4 @@
-using InternetId.Users.Services;
+using InternetId.Server.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -27,16 +27,16 @@ namespace InternetId.Server.Areas.Connect.Controllers
             [Scopes.Phone] = new[] { "phone", "phone_verified" },
         };
 
-        private readonly UserFinder userFinder;
+        private readonly UserClientManager userClientManager;
 
-        public UserinfoController(UserFinder userFinder)
-            => this.userFinder = userFinder;
+        public UserinfoController(UserClientManager userClientManager)
+            => this.userClientManager = userClientManager;
 
         [Authorize(AuthenticationSchemes = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme)]
         [HttpGet("~/connect/userinfo"), HttpPost("~/connect/userinfo"), Produces("application/json")]
         public async Task<IActionResult> Userinfo()
         {
-            var user = await userFinder.FindByClientPrincipalAsync(User);
+            var user = await userClientManager.FindByClientPrincipalAsync(User);
             if (user == null)
             {
                 return Challenge(

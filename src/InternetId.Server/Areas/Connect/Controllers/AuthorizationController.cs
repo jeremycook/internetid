@@ -1,9 +1,3 @@
-/*
- * Licensed under the Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
- * See https://github.com/openiddict/openiddict-core for more information concerning
- * the license and the contributors participating to this project.
- */
-
 using InternetId.Server.Areas.Connect.ViewModels;
 using InternetId.Server.Helpers;
 using InternetId.Server.Services;
@@ -33,6 +27,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
         private readonly IOpenIddictAuthorizationManager authorizationManager;
         private readonly IOpenIddictScopeManager scopeManager;
         private readonly UserFinder userFinder;
+        private readonly UserClientManager userClientManager;
         private readonly SignInManager signInManager;
         private readonly ILogger<AuthorizationController> logger;
 
@@ -41,6 +36,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
             IOpenIddictAuthorizationManager authorizationManager,
             IOpenIddictScopeManager scopeManager,
             UserFinder userFinder,
+            UserClientManager userClientManager,
             SignInManager signInManager,
             ILogger<AuthorizationController> logger)
         {
@@ -48,6 +44,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
             this.authorizationManager = authorizationManager;
             this.scopeManager = scopeManager;
             this.userFinder = userFinder;
+            this.userClientManager = userClientManager;
             this.signInManager = signInManager;
             this.logger = logger;
         }
@@ -156,7 +153,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 await applicationManager.GetIdAsync(application) ??
                 throw new InvalidOperationException("The application ID could not be determined.");
 
-            string subject = await signInManager.GetOrCreateClientSubjectAsync(user, clientId);
+            string subject = await userClientManager.GetOrCreateClientSubjectAsync(user, clientId);
 
             // Retrieve the permanent authorizations associated with the user and the calling client application.
             var authorizations = await authorizationManager.FindAsync(
@@ -185,7 +182,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 case ConsentTypes.Implicit:
                 case ConsentTypes.External when authorizations.Any():
                 case ConsentTypes.Explicit when authorizations.Any() && !request.HasPrompt(Prompts.Consent):
-                    var principal = await signInManager.CreateClientPrincipalAsync(user, clientId);
+                    var principal = await userClientManager.CreateClientPrincipalAsync(user, clientId);
 
                     // Note: in this sample, the granted scopes match the requested scope
                     // but you may want to allow the user to uncheck specific scopes.
@@ -263,7 +260,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 await applicationManager.GetIdAsync(application) ??
                 throw new InvalidOperationException("The client application ID could not be determined.");
 
-            string subject = await signInManager.GetOrCreateClientSubjectAsync(user, clientId);
+            string subject = await userClientManager.GetOrCreateClientSubjectAsync(user, clientId);
 
             // Retrieve the permanent authorizations associated with the user and the calling client application.
             var authorizations = await authorizationManager
@@ -292,7 +289,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
                     }));
             }
 
-            var principal = await signInManager.CreateClientPrincipalAsync(user, clientId);
+            var principal = await userClientManager.CreateClientPrincipalAsync(user, clientId);
 
             // Note: in this sample, the granted scopes match the requested scope
             // but you may want to allow the user to uncheck specific scopes.
@@ -371,7 +368,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 // Note: if you want to automatically invalidate the authorization code/refresh token
                 // when the user password/roles change, use the following line instead:
                 // var user = signInManager.ValidateSecurityStampAsync(info.Principal);
-                var user = await userFinder.FindByClientPrincipalAsync(clientPrincipal);
+                var user = await userClientManager.FindByClientPrincipalAsync(clientPrincipal);
                 if (user == null)
                 {
                     return Forbid(
