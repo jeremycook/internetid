@@ -14,10 +14,10 @@ namespace InternetId.Users.Data
 
             if (modelBuilder.Entity<User>() is var user)
             {
-                user.Property(o => o.LowercaseUsername).HasComputedColumnSql("lower(username)", stored: true);
+                user.Property(o => o.LowercaseUsername).HasComputedColumnSql("lower(\"Username\")", stored: true);
                 user.HasIndex(o => o.LowercaseUsername).IsUnique();
 
-                user.Property(o => o.LowercaseEmail).HasComputedColumnSql("lower(email)", stored: true);
+                user.Property(o => o.LowercaseEmail).HasComputedColumnSql("lower(\"Email\")", stored: true);
                 user.HasIndex(o => o.LowercaseEmail);
 
                 user.Property(o => o.Created).HasDefaultValueSql("current_timestamp");
@@ -28,11 +28,9 @@ namespace InternetId.Users.Data
                 userClient.HasKey(o => new { o.UserId, o.ClientId });
                 userClient.HasIndex(o => o.Subject);
             }
-
-            modelBuilder.ApplyUnderscoreNames();
         }
 
-        public DbSet<User> Users => Set<User>();
-        public DbSet<UserClient> UserClients => Set<UserClient>();
+        public DbSet<User> Users { get; set; } = null!;
+        public DbSet<UserClient> UserClients { get; set; } = null!;
     }
 }
