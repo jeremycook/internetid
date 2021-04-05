@@ -36,7 +36,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
         [HttpGet("~/connect/userinfo"), HttpPost("~/connect/userinfo"), Produces("application/json")]
         public async Task<IActionResult> Userinfo()
         {
-            var user = await userFinder.FindByClaimsPrincipalAsync(User);
+            var user = await userFinder.FindByClientPrincipalAsync(User);
             if (user == null)
             {
                 return Challenge(
@@ -48,39 +48,31 @@ namespace InternetId.Server.Areas.Connect.Controllers
                     }));
             }
 
-            // TODO: Add claims from the user once we start tracking user claims.
+            // TODO: Eventually add other claims.
             var userClaims = new List<Claim>();
 
             var claims = new Dictionary<string, object>(StringComparer.Ordinal)
             {
                 // The sub claim is a mandatory claim that must be included in the JSON response.
-                // TODO: Make the Subject per client by hashing the client ID and user ID together.
-                [Claims.Subject] = user.Id.ToString(),
+                [Claims.Subject] = User.FindFirstValue(Claims.Subject),
             };
 
             if (User.HasScope(Scopes.Email) && user.EmailVerified && !string.IsNullOrWhiteSpace(user.Email))
             {
                 // Only pass the email if it has been verified.
                 claims[Claims.Email] = user.Email;
-                claims[Claims.EmailVerified] = user.EmailVerified;
+                claims[Claims.EmailVerified] = user.EmailVerified ? "true" : "false";
             }
 
             if (User.HasScope(Scopes.Profile))
             {
+                claims[Claims.PreferredUsername] = user.Username;
+                claims[Claims.Name] = user.DisplayName;
+
                 var profileClaims = _scopeClaims[Scopes.Profile];
                 foreach (var claim in userClaims.Where(o => profileClaims.Contains(o.Type)))
                 {
-                    claims.Add(claim.Type, claim.Value);
-                }
-
-                if (!claims.ContainsKey(Claims.PreferredUsername))
-                {
-                    claims.Add(Claims.PreferredUsername, user.Username);
-                }
-
-                if (!claims.ContainsKey(Claims.Name))
-                {
-                    claims.Add(Claims.Name, user.DisplayName);
+                    claims.TryAdd(claim.Type, claim.Value);
                 }
             }
 
@@ -95,12 +87,16 @@ namespace InternetId.Server.Areas.Connect.Controllers
 
             if (User.HasScope(Scopes.Phone))
             {
-                // TODO: We don't track phone number right now.
+                var phoneClaims = _scopeClaims[Scopes.Phone];
+                foreach (var claim in userClaims.Where(o => phoneClaims.Contains(o.Type)))
+                {
+                    claims.Add(claim.Type, claim.Value);
+                }
             }
 
             if (User.HasScope(Scopes.Roles))
             {
-                // Intentionally ignoring the roles scope until we have an interface for managing that per client.
+                // Intentionally ignoring the roles scope until we have a way to manage that per client.
             }
 
             return Ok(claims);

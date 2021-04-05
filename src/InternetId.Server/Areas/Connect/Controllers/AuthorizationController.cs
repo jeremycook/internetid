@@ -57,12 +57,13 @@ namespace InternetId.Server.Areas.Connect.Controllers
         [IgnoreAntiforgeryToken]
         public async Task<IActionResult> Authorize()
         {
-            var request = HttpContext.GetOpenIddictServerRequest() ??
+            var request =
+                HttpContext.GetOpenIddictServerRequest() ??
                 throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
 
             // Retrieve the user principal stored in the authentication cookie.
             // If it can't be extracted, redirect the user to the login page.
-            var result = await HttpContext.AuthenticateAsync(SignInManager.Scheme);
+            var result = await HttpContext.AuthenticateAsync(SignInManager.AuthenticationScheme);
             if (result == null || !result.Succeeded || result.Principal == null)
             {
                 // If the client application requested promptless authentication,
@@ -79,7 +80,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 }
 
                 return Challenge(
-                    authenticationSchemes: SignInManager.Scheme,
+                    authenticationSchemes: SignInManager.AuthenticationScheme,
                     properties: new AuthenticationProperties
                     {
                         RedirectUri =
@@ -104,7 +105,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 parameters.Add(KeyValuePair.Create(Parameters.Prompt, new StringValues(prompt)));
 
                 return Challenge(
-                    authenticationSchemes: SignInManager.Scheme,
+                    authenticationSchemes: SignInManager.AuthenticationScheme,
                     properties: new AuthenticationProperties
                     {
                         RedirectUri = Request.PathBase + Request.Path + QueryString.Create(parameters)
@@ -129,7 +130,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 }
 
                 return Challenge(
-                    authenticationSchemes: SignInManager.Scheme,
+                    authenticationSchemes: SignInManager.AuthenticationScheme,
                     properties: new AuthenticationProperties
                     {
                         RedirectUri =
@@ -139,22 +140,28 @@ namespace InternetId.Server.Areas.Connect.Controllers
                     });
             }
 
+            string clientId = request.ClientId ?? throw new InvalidOperationException("The client identifier cannot be null.");
+
             // Retrieve the profile of the logged in user.
-            var user = await userFinder.FindByClaimsPrincipalAsync(result.Principal);
-            if (user == null)
-            {
-                logger.LogWarning("The user details cannot be retrieved.");
-                return LocalRedirect("~/");
-            }
+            var user =
+                await userFinder.FindByLocalPrincipalAsync(result.Principal) ??
+                throw new InvalidOperationException("The user details cannot be retrieved.");
 
             // Retrieve the application details from the database.
-            var application = await applicationManager.FindByClientIdAsync(request.ClientId) ??
+            var application =
+                await applicationManager.FindByClientIdAsync(clientId) ??
                 throw new InvalidOperationException("Details concerning the calling client application cannot be found.");
+
+            string applicationId =
+                await applicationManager.GetIdAsync(application) ??
+                throw new InvalidOperationException("The application ID could not be determined.");
+
+            string subject = await signInManager.GetOrCreateClientSubjectAsync(user, clientId);
 
             // Retrieve the permanent authorizations associated with the user and the calling client application.
             var authorizations = await authorizationManager.FindAsync(
-                subject: user.Id.ToString(),
-                client: await applicationManager.GetIdAsync(application),
+                subject: subject,
+                client: applicationId,
                 status: Statuses.Valid,
                 type: AuthorizationTypes.Permanent,
                 scopes: request.GetScopes()).ToListAsync();
@@ -178,7 +185,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 case ConsentTypes.Implicit:
                 case ConsentTypes.External when authorizations.Any():
                 case ConsentTypes.Explicit when authorizations.Any() && !request.HasPrompt(Prompts.Consent):
-                    var principal = await signInManager.CreateClaimsPrincipalAsync(user);
+                    var principal = await signInManager.CreateClientPrincipalAsync(user, clientId);
 
                     // Note: in this sample, the granted scopes match the requested scope
                     // but you may want to allow the user to uncheck specific scopes.
@@ -193,8 +200,8 @@ namespace InternetId.Server.Areas.Connect.Controllers
                     {
                         authorization = await authorizationManager.CreateAsync(
                             principal: principal,
-                            subject: user.Id.ToString(),
-                            client: await applicationManager.GetIdAsync(application),
+                            subject: subject,
+                            client: applicationId,
                             type: AuthorizationTypes.Permanent,
                             scopes: principal.GetScopes());
                     }
@@ -225,8 +232,8 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 default:
                     return View(new AuthorizeViewModel
                     {
-                        ApplicationName = await applicationManager.GetDisplayNameAsync(application),
-                        Scope = request.Scope
+                        ApplicationName = await applicationManager.GetDisplayNameAsync(application) ?? throw new InvalidOperationException("The application display name cannot be null."),
+                        Scope = request.Scope ?? throw new InvalidOperationException("The request scope cannot be null.")
                     });
             }
         }
@@ -240,21 +247,29 @@ namespace InternetId.Server.Areas.Connect.Controllers
                 HttpContext.GetOpenIddictServerRequest() ??
                 throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
 
+            string clientId = request.ClientId ?? throw new InvalidOperationException("The client identifier cannot be null.");
+
             // Retrieve the profile of the logged in user.
             var user =
-                await userFinder.FindByClaimsPrincipalAsync(User) ??
-                throw new InvalidOperationException("The user details cannot be retrieved.");
+                await userFinder.FindByLocalPrincipalAsync(User) ??
+                throw new InvalidOperationException("The local user details cannot be retrieved.");
 
             // Retrieve the application details from the database.
             var application =
-                await applicationManager.FindByClientIdAsync(request.ClientId!) ??
+                await applicationManager.FindByClientIdAsync(clientId) ??
                 throw new InvalidOperationException("Details concerning the calling client application cannot be found.");
+
+            string applicationId =
+                await applicationManager.GetIdAsync(application) ??
+                throw new InvalidOperationException("The client application ID could not be determined.");
+
+            string subject = await signInManager.GetOrCreateClientSubjectAsync(user, clientId);
 
             // Retrieve the permanent authorizations associated with the user and the calling client application.
             var authorizations = await authorizationManager
                 .FindAsync(
-                    subject: user.Id.ToString(),
-                    client: await applicationManager.GetIdAsync(application),
+                    subject: subject,
+                    client: applicationId,
                     status: Statuses.Valid,
                     type: AuthorizationTypes.Permanent,
                     scopes: request.GetScopes()
@@ -277,7 +292,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
                     }));
             }
 
-            var principal = await signInManager.CreateClaimsPrincipalAsync(user);
+            var principal = await signInManager.CreateClientPrincipalAsync(user, clientId);
 
             // Note: in this sample, the granted scopes match the requested scope
             // but you may want to allow the user to uncheck specific scopes.
@@ -292,8 +307,8 @@ namespace InternetId.Server.Areas.Connect.Controllers
             {
                 authorization = await authorizationManager.CreateAsync(
                     principal: principal,
-                    subject: user.Id.ToString(),
-                    client: await applicationManager.GetIdAsync(application),
+                    subject: subject,
+                    client: applicationId,
                     type: AuthorizationTypes.Permanent,
                     scopes: principal.GetScopes());
             }
@@ -322,7 +337,7 @@ namespace InternetId.Server.Areas.Connect.Controllers
         [ActionName(nameof(Logout))]
         [HttpPost("~/connect/logout")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> LogoutPost()
+        public IActionResult LogoutPost()
         {
             // Note that if any identity providers were used to authenticate then
             // a call should be made at this point to clean up those local and external cookies.
@@ -348,13 +363,15 @@ namespace InternetId.Server.Areas.Connect.Controllers
             if (request.IsAuthorizationCodeGrantType() || request.IsRefreshTokenGrantType())
             {
                 // Retrieve the claims principal stored in the authorization code/device code/refresh token.
-                var principal = (await HttpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme)).Principal!;
+                var clientPrincipal =
+                    (await HttpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme)).Principal ??
+                    throw new InvalidOperationException("The client principal details cannot be retrieved.");
 
                 // Retrieve the user profile corresponding to the authorization code/refresh token.
                 // Note: if you want to automatically invalidate the authorization code/refresh token
                 // when the user password/roles change, use the following line instead:
                 // var user = signInManager.ValidateSecurityStampAsync(info.Principal);
-                var user = await userFinder.FindByClaimsPrincipalAsync(principal);
+                var user = await userFinder.FindByClientPrincipalAsync(clientPrincipal);
                 if (user == null)
                 {
                     return Forbid(
@@ -378,13 +395,13 @@ namespace InternetId.Server.Areas.Connect.Controllers
                         }));
                 }
 
-                foreach (var claim in principal.Claims)
+                foreach (var claim in clientPrincipal.Claims)
                 {
-                    claim.SetDestinations(GetDestinations(claim, principal));
+                    claim.SetDestinations(GetDestinations(claim, clientPrincipal));
                 }
 
                 // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
-                return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+                return SignIn(clientPrincipal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
             }
 
             throw new InvalidOperationException("The specified grant type is not supported.");
@@ -393,8 +410,10 @@ namespace InternetId.Server.Areas.Connect.Controllers
         private IEnumerable<string> GetDestinations(Claim claim, ClaimsPrincipal principal)
         {
             // Note: by default, claims are NOT automatically included in the access and identity tokens.
-            // To allow OpenIddict to serialize them, you must attach them a destination, that specifies
+            // To allow OpenIddict to serialize them, you must attach them to a destination that specifies
             // whether they should be included in access tokens, in identity tokens or in both.
+
+            // TODO: suppress all
 
             switch (claim.Type)
             {

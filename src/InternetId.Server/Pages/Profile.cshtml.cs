@@ -20,7 +20,7 @@ namespace InternetId.Server.Pages
 
         public async Task OnGetAsync()
         {
-            CurrentUser = (await userFinder.FindByClaimsPrincipalAsync(User))!;
+            CurrentUser = (await userFinder.FindByLocalPrincipalAsync(User))!;
         }
     }
 }

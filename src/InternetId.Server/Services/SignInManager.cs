@@ -1,8 +1,10 @@
 ﻿using InternetId.Users.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
@@ -10,16 +12,59 @@ namespace InternetId.Server.Services
 {
     public class SignInManager
     {
-        public const string Scheme = "Cookies";
+        public const string AuthenticationScheme = "Cookies";
 
         private readonly IHttpContextAccessor httpContextAccessor;
+        private readonly UsersDbContext usersDb;
 
-        public SignInManager(IHttpContextAccessor httpContextAccessor)
+        public SignInManager(IHttpContextAccessor httpContextAccessor, UsersDbContext usersDb)
         {
             this.httpContextAccessor = httpContextAccessor;
+            this.usersDb = usersDb;
         }
 
-        public Task<ClaimsPrincipal> CreateClaimsPrincipalAsync(User user)
+        public async Task<ClaimsPrincipal> CreateClientPrincipalAsync(User user, string clientId)
+        {
+            string? subject = await GetOrCreateClientSubjectAsync(user, clientId);
+
+            var claims = new List<Claim>
+            {
+                new Claim("sub", subject),
+            };
+
+            var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, AuthenticationScheme, "sub", "role"));
+
+            return principal;
+        }
+
+        public async Task<string> GetOrCreateClientSubjectAsync(User user, string clientId)
+        {
+            string? subject = await GetClientSubjectAsync(user, clientId);
+
+            if (subject is null)
+            {
+                subject = Guid.NewGuid().ToString();
+                usersDb.UserClients.Add(new UserClient
+                {
+                    UserId = user.Id,
+                    ClientId = clientId,
+                    Subject = subject
+                });
+                await usersDb.SaveChangesAsync();
+            }
+
+            return subject;
+        }
+
+        public async Task<string?> GetClientSubjectAsync(User user, string clientId)
+        {
+            return await usersDb.UserClients
+                .Where(o => o.UserId == user.Id && o.ClientId == clientId)
+                .Select(o => o.Subject)
+                .SingleOrDefaultAsync();
+        }
+
+        public Task<ClaimsPrincipal> CreateLocalPrincipalAsync(User user)
         {
             var claims = new List<Claim>
             {
@@ -36,7 +81,7 @@ namespace InternetId.Server.Services
 
             // TODO: Provide a hook for contributing/modifying claims.
 
-            var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, Scheme, "username", "role"));
+            var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, AuthenticationScheme, "username", "role"));
 
             return Task.FromResult(principal);
         }
@@ -65,14 +110,14 @@ namespace InternetId.Server.Services
                 httpContextAccessor.HttpContext ??
                 throw new InvalidOperationException("Unable to sign in the user. The IHttpContextAccessor.HttpContext is unavailable.");
 
-            var principal = await CreateClaimsPrincipalAsync(user);
+            var principal = await CreateLocalPrincipalAsync(user);
 
             var authenticationProperties = new AuthenticationProperties
             {
                 IsPersistent = false, // match browser session
             };
 
-            await httpContext.SignInAsync(scheme: Scheme, principal, authenticationProperties);
+            await httpContext.SignInAsync(scheme: AuthenticationScheme, principal, authenticationProperties);
         }
 
         /// <summary>
@@ -85,7 +130,7 @@ namespace InternetId.Server.Services
                 httpContextAccessor.HttpContext ??
                 throw new InvalidOperationException("Unable to sign in the user. The IHttpContextAccessor.HttpContext is unavailable.");
 
-            await httpContext.SignOutAsync(Scheme);
+            await httpContext.SignOutAsync(AuthenticationScheme);
         }
     }
 }

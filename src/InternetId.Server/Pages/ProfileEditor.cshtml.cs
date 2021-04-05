@@ -44,7 +44,7 @@ namespace InternetId.Server.Pages
         public async void OnGetAsync()
         {
             var user =
-                await userFinder.FindByClaimsPrincipalAsync(User) ??
+                await userFinder.FindByLocalPrincipalAsync(User) ??
                 throw new InvalidOperationException("User not found");
 
             Input.DisplayName = user.DisplayName;
@@ -53,7 +53,7 @@ namespace InternetId.Server.Pages
         public async Task<IActionResult> OnPostAsync()
         {
             var user =
-                await userFinder.FindByClaimsPrincipalAsync(User) ??
+                await userFinder.FindByLocalPrincipalAsync(User) ??
                 throw new InvalidOperationException("User not found");
 
             try

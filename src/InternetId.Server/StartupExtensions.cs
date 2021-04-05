@@ -15,7 +15,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
             services.AddScoped<SignInManager>();
 
-            services.AddAuthentication(SignInManager.Scheme)
+            services.AddAuthentication(SignInManager.AuthenticationScheme)
                 .AddCookie(options =>
                 {
                     options.Cookie.SameSite = AspNetCore.Http.SameSiteMode.Strict;

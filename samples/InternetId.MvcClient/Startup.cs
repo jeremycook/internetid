@@ -43,7 +43,6 @@ namespace InternetId.MvcClient
                 // the different endpoints URIs or the token validation parameters explicitly.
                 options.Authority = "https://localhost:44313/";
 
-                options.Scope.Add("profile");
                 options.Scope.Add("email");
                 options.Scope.Add("roles");
 

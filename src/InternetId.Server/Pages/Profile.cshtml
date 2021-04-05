@@ -19,6 +19,13 @@
             </div>
         </div>
 
+        @if (!Model.CurrentUser.EmailVerified && !string.IsNullOrWhiteSpace(Model.CurrentUser.Email))
+        {
+            <p class="alert alert-info">
+                Please <a asp-page="EmailVerificationRequest" asp-route-identifier="@Model.CurrentUser.Username">verify your email address</a>.
+            </p>
+        }
+
         <div class="card">
             <table class="table">
                 <tr>

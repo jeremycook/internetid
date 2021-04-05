@@ -1,4 +1,5 @@
-﻿using InternetId.Users.Data;
+﻿using InternetId.Server.Services;
+using InternetId.Users.Data;
 using InternetId.Users.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,17 +16,20 @@ namespace InternetId.Server.Pages
     public class RegisterModel : PageModel
     {
         private readonly ILogger<RegisterModel> logger;
+        private readonly SignInManager signInManager;
         private readonly UsersDbContext usersDb;
         private readonly PasswordService userPasswordService;
         private readonly EmailService userVerifyEmailService;
 
         public RegisterModel(
             ILogger<RegisterModel> logger,
+            SignInManager signInManager,
             UsersDbContext usersDb,
             PasswordService userPasswordService,
             EmailService userVerifyEmailService)
         {
             this.logger = logger;
+            this.signInManager = signInManager;
             this.usersDb = usersDb;
             this.userPasswordService = userPasswordService;
             this.userVerifyEmailService = userVerifyEmailService;
@@ -83,8 +87,7 @@ namespace InternetId.Server.Pages
 
                 if (ModelState.IsValid)
                 {
-                    // Use a transaction to avoid creating a user
-                    // but setting the password fails.
+                    // Use a transaction to avoid creating a user without a password.
                     using var tx = await usersDb.Database.BeginTransactionAsync();
 
                     var user = new User
@@ -99,6 +102,9 @@ namespace InternetId.Server.Pages
                     await userPasswordService.SetPasswordAsync(user, Input.Password!);
 
                     await tx.CommitAsync();
+
+                    // Good to go, sign in
+                    await signInManager.SignInAsync(user);
 
                     if (user.Email != null)
                     {

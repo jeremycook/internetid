@@ -16,7 +16,25 @@ namespace InternetId.Users.Services
             this.usersDb = usersDb;
         }
 
-        public async Task<User?> FindByClaimsPrincipalAsync(ClaimsPrincipal claimsPrincipal)
+        public async Task<User?> FindByClientPrincipalAsync(ClaimsPrincipal claimsPrincipal)
+        {
+            var sub = claimsPrincipal.FindFirst("sub")?.Value;
+            var client = claimsPrincipal.FindFirst("oi_prst")?.Value;
+
+            if (sub is string subject && client is string clientId)
+            {
+                return await usersDb.UserClients
+                    .Where(o => o.Subject == sub && o.ClientId == clientId)
+                    .Select(o => o.User)
+                    .SingleOrDefaultAsync();
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public async Task<User?> FindByLocalPrincipalAsync(ClaimsPrincipal claimsPrincipal)
         {
             var sub = claimsPrincipal.FindFirst("sub")?.Value;
 

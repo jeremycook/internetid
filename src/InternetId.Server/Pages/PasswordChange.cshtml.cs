@@ -62,7 +62,7 @@ namespace InternetId.Server.Pages
 
         public async Task OnGetAsync(string? identifier = null, string? returnUrl = null)
         {
-            Input.Identifier = identifier ?? (await userFinder.FindByClaimsPrincipalAsync(User))?.Username;
+            Input.Identifier = identifier ?? (await userFinder.FindByLocalPrincipalAsync(User))?.Username;
             ReturnUrl = returnUrl;
         }
 

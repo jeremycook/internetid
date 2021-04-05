@@ -23,9 +23,16 @@ namespace InternetId.Users.Data
                 user.Property(o => o.Created).HasDefaultValueSql("current_timestamp");
             }
 
+            if (modelBuilder.Entity<UserClient>() is var userClient)
+            {
+                userClient.HasKey(o => new { o.UserId, o.ClientId });
+                userClient.HasIndex(o => o.Subject);
+            }
+
             modelBuilder.ApplyUnderscoreNames();
         }
 
         public DbSet<User> Users => Set<User>();
+        public DbSet<UserClient> UserClients => Set<UserClient>();
     }
 }

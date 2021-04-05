@@ -24,6 +24,7 @@ namespace InternetId.Users.Data
 
         [Required]
         [Display(Name = "Display name")]
+        [Obsolete("TODO: Change to Full Name")]
         public string DisplayName { get; set; } = null!;
 
         [DataType(DataType.EmailAddress)]
