@@ -17,13 +17,13 @@ namespace InternetId.Server.Pages
     {
         private readonly ILogger<ProfileManagerModel> logger;
         private readonly SignInManager signInManager;
-        private readonly UsersDbContext usersDb;
+        private readonly IUsersDbContext usersDb;
         private readonly UserFinder userFinder;
 
         public ProfileManagerModel(
             ILogger<ProfileManagerModel> logger,
             SignInManager signInManager,
-            UsersDbContext usersDb,
+            IUsersDbContext usersDb,
             UserFinder userFinder)
         {
             this.logger = logger;

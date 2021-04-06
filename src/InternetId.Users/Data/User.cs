@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System;
 using System.ComponentModel.DataAnnotations;
 
@@ -35,5 +37,19 @@ namespace InternetId.Users.Data
         public bool EmailVerified { get; set; }
 
         public DateTimeOffset Created { get; set; }
+
+        public class EntityTypeConfiguration : IEntityTypeConfiguration<User>
+        {
+            public void Configure(EntityTypeBuilder<User> builder)
+            {
+                builder.Property(o => o.LowercaseUsername);
+                builder.HasIndex(o => o.LowercaseUsername).IsUnique();
+
+                builder.Property(o => o.LowercaseEmail);
+                builder.HasIndex(o => o.LowercaseEmail);
+
+                builder.Property(o => o.Created);
+            }
+        }
     }
 }

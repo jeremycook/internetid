@@ -9,9 +9,9 @@ namespace InternetId.Users.Services
 {
     public class UserFinder
     {
-        private readonly UsersDbContext usersDb;
+        private readonly IUsersDbContext usersDb;
 
-        public UserFinder(UsersDbContext usersDb)
+        public UserFinder(IUsersDbContext usersDb)
         {
             this.usersDb = usersDb;
         }

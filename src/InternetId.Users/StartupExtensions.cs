@@ -15,6 +15,7 @@ namespace Microsoft.Extensions.DependencyInjection
             services.AddPwnedPasswordHttpClient();
 
             services.AddDbContext<UsersDbContext>(usersDbContextOptionsBuilder);
+            services.AddScoped<IUsersDbContext, UsersDbContext>(svc => svc.GetRequiredService<UsersDbContext>());
 
             services.AddScoped<EmailService>();
             services.AddScoped<PasswordResetService>();

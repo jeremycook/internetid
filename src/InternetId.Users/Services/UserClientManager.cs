@@ -14,9 +14,9 @@ namespace InternetId.Users.Services
     {
         private const string sub = "sub";
 
-        private readonly UsersDbContext usersDb;
+        private readonly IUsersDbContext usersDb;
 
-        public UserClientManager(UsersDbContext usersDb)
+        public UserClientManager(IUsersDbContext usersDb)
         {
             this.usersDb = usersDb;
         }
@@ -42,7 +42,7 @@ namespace InternetId.Users.Services
             if (subject is null)
             {
                 subject = Guid.NewGuid().ToString();
-                usersDb.UserClients.Add(new UserClient
+                usersDb.Clients.Add(new UserClient
                 {
                     UserId = user.Id,
                     ClientId = clientId,
@@ -56,7 +56,7 @@ namespace InternetId.Users.Services
 
         public async Task<string?> GetClientSubjectAsync(User user, string clientId)
         {
-            return await usersDb.UserClients
+            return await usersDb.Clients
                 .Where(o => o.UserId == user.Id && o.ClientId == clientId)
                 .Select(o => o.Subject)
                 .SingleOrDefaultAsync();
@@ -69,7 +69,7 @@ namespace InternetId.Users.Services
 
             if (sub is string subject && client is string clientId)
             {
-                return await usersDb.UserClients
+                return await usersDb.Clients
                     .Where(o => o.Subject == sub && o.ClientId == clientId)
                     .Select(o => o.User)
                     .SingleOrDefaultAsync();

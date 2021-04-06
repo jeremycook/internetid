@@ -35,7 +35,7 @@ namespace InternetId.Server
             await scope.ServiceProvider.GetRequiredService<CredentialsDbContext>().Database.EnsureCreatedAsync();
             await scope.ServiceProvider.GetRequiredService<OpenIddictDbContext>().Database.EnsureCreatedAsync();
 
-            var context = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
+            var context = scope.ServiceProvider.GetRequiredService<IUsersDbContext>();
             await context.Database.EnsureCreatedAsync();
 
             var manager = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();

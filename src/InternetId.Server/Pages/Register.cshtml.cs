@@ -17,14 +17,14 @@ namespace InternetId.Server.Pages
     {
         private readonly ILogger<RegisterModel> logger;
         private readonly SignInManager signInManager;
-        private readonly UsersDbContext usersDb;
+        private readonly IUsersDbContext usersDb;
         private readonly PasswordService userPasswordService;
         private readonly EmailService emailService;
 
         public RegisterModel(
             ILogger<RegisterModel> logger,
             SignInManager signInManager,
-            UsersDbContext usersDb,
+            IUsersDbContext usersDb,
             PasswordService userPasswordService,
             EmailService emailService)
         {

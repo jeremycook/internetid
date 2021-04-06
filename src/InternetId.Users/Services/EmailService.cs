@@ -12,11 +12,11 @@ namespace InternetId.Users.Services
     {
         private const string purpose = "email_verification";
 
-        private readonly UsersDbContext usersDbContext;
+        private readonly IUsersDbContext usersDbContext;
         private readonly CredentialManager credentialManager;
         private readonly IEmailer emailer;
 
-        public EmailService(UsersDbContext usersDbContext, CredentialManager credentialManager, IEmailer emailer)
+        public EmailService(IUsersDbContext usersDbContext, CredentialManager credentialManager, IEmailer emailer)
         {
             this.usersDbContext = usersDbContext;
             this.credentialManager = credentialManager;

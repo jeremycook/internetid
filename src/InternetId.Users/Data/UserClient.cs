@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace InternetId.Users.Data
@@ -13,5 +15,14 @@ namespace InternetId.Users.Data
 
         [Required]
         public string Subject { get; set; } = null!;
+
+        public class EntityTypeConfiguration : IEntityTypeConfiguration<UserClient>
+        {
+            public void Configure(EntityTypeBuilder<UserClient> builder)
+            {
+                builder.HasKey(o => new { o.UserId, o.ClientId });
+                builder.HasIndex(o => o.Subject);
+            }
+        }
     }
 }
