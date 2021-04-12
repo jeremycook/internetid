@@ -18,7 +18,16 @@ namespace InternetId.Server
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddLogging(loggingBuilder => loggingBuilder.AddSeq());
+            if (Configuration.GetSection("Seq") is IConfigurationSection seq &&
+                seq.Exists())
+            {
+                services.AddLogging(loggingBuilder => loggingBuilder
+                    .AddSeq(
+                        serverUrl: seq.GetValue<string>("ServerUrl"),
+                        apiKey: seq.GetValue<string>("ApiKey")
+                    )
+                );
+            }
 
             services.AddControllersWithViews(options =>
             {
