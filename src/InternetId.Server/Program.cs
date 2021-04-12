@@ -17,10 +17,22 @@ namespace InternetId.Server
                     .UseStartup<Startup>()
                     .ConfigureAppConfiguration((webHostBuilderContext, configurationBuilder) =>
                     {
-                        if (Environment.GetEnvironmentVariable("APPSETTINGS") is string configPath)
+                        if (webHostBuilderContext.HostingEnvironment.ContentRootPath.TrimEnd('/') == "/app" &&
+                            File.Exists("/config/appsettings.json"))
                         {
-                            configPath = Path.GetFullPath(configPath);
-                            configurationBuilder.AddJsonFile(configPath, optional: false, reloadOnChange: true);
+                            configurationBuilder.AddJsonFile(
+                                path: "/config/appsettings.json",
+                                optional: false,
+                                reloadOnChange: true);
+                        }
+
+                        if (Environment.GetEnvironmentVariable("APPSETTINGS") is string appsettingsPath)
+                        {
+                            appsettingsPath = Path.GetFullPath(appsettingsPath);
+                            configurationBuilder.AddJsonFile(
+                                path: appsettingsPath,
+                                optional: false,
+                                reloadOnChange: true);
                         }
                     })
                 );
