@@ -1,7 +1,7 @@
 # see https://github.com/dotnet/dotnet-docker/tree/main/samples/complexapp
 
 # https://hub.docker.com/_/microsoft-dotnet
-FROM mcr.microsoft.com/dotnet/sdk:5.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:5.0-focal AS build
 WORKDIR /source
 
 # copy csproj and restore as distinct layers
@@ -36,7 +36,7 @@ FROM build AS publish
 RUN dotnet publish -c release --no-build -o /app
 
 # final stage/image
-FROM mcr.microsoft.com/dotnet/runtime:5.0
+FROM mcr.microsoft.com/dotnet/aspnet:5.0-focal
 WORKDIR /app
 COPY --from=publish /app .
 ENTRYPOINT ["dotnet", "InternetId.Server.dll"]

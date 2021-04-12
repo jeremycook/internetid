@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 16.0.31005.135
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{E4CDA50A-7DDC-413A-BA9A-69973E390F6D}"
+	ProjectSection(SolutionItems) = preProject
+		src\Dockerfile = src\Dockerfile
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InternetId.Server", "src\InternetId.Server\InternetId.Server.csproj", "{A28A6737-7D3C-409F-8F4D-5A7AD0FEF2C7}"
 EndProject
@@ -19,11 +22,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InternetId.Npgsql", "src\In
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InternetId.EntityFrameworkCore", "src\InternetId.EntityFrameworkCore\InternetId.EntityFrameworkCore.csproj", "{D05EFB06-ED36-4EA4-BE98-AF16F154F17F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InternetId.Common", "src\InternetId.Common\InternetId.Common.csproj", "{E6F6FF4D-7744-47E7-86C0-824F2F40B518}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InternetId.Common", "src\InternetId.Common\InternetId.Common.csproj", "{E6F6FF4D-7744-47E7-86C0-824F2F40B518}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InternetId.Credentials", "src\InternetId.Credentials\InternetId.Credentials.csproj", "{028D84BF-B9C2-4E16-BBCB-42B5A840AB0B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InternetId.Tests", "src\InternetId.Tests\InternetId.Tests.csproj", "{59ED85CF-26B1-436B-B9B2-D2B391CFA22B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InternetId.Tests", "src\InternetId.Tests\InternetId.Tests.csproj", "{59ED85CF-26B1-436B-B9B2-D2B391CFA22B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
