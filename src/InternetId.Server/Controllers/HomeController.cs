@@ -12,7 +12,7 @@ namespace InternetId.Server.Controllers
             _logger = logger;
         }
 
-        [HttpGet("~/")]
+        [HttpGet("/")]
         public IActionResult Index()
         {
             return View();
