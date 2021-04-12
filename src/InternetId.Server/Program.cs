@@ -8,6 +8,8 @@ namespace InternetId.Server
 {
     public static class Program
     {
+        private const string containerAppsettingsPath = "/config/appsettings.json";
+
         public static void Main(string[] args) =>
             CreateHostBuilder(args).Build().Run();
 
@@ -18,10 +20,11 @@ namespace InternetId.Server
                     .ConfigureAppConfiguration((webHostBuilderContext, configurationBuilder) =>
                     {
                         if (webHostBuilderContext.HostingEnvironment.ContentRootPath.TrimEnd('/') == "/app" &&
-                            File.Exists("/config/appsettings.json"))
+                            File.Exists(containerAppsettingsPath))
                         {
+                            Console.WriteLine($"Reading appsettings from: {containerAppsettingsPath}");
                             configurationBuilder.AddJsonFile(
-                                path: "/config/appsettings.json",
+                                path: containerAppsettingsPath,
                                 optional: false,
                                 reloadOnChange: true);
                         }
@@ -29,6 +32,7 @@ namespace InternetId.Server
                         if (Environment.GetEnvironmentVariable("APPSETTINGS") is string appsettingsPath)
                         {
                             appsettingsPath = Path.GetFullPath(appsettingsPath);
+                            Console.WriteLine($"Reading appsettings from: {appsettingsPath}");
                             configurationBuilder.AddJsonFile(
                                 path: appsettingsPath,
                                 optional: false,
