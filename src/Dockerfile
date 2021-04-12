@@ -1,3 +1,5 @@
+# see https://github.com/dotnet/dotnet-docker/tree/main/samples/complexapp
+
 # https://hub.docker.com/_/microsoft-dotnet
 FROM mcr.microsoft.com/dotnet/sdk:5.0 AS build
 WORKDIR /source
