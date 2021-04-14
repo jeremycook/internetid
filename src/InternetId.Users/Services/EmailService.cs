@@ -10,7 +10,7 @@ namespace InternetId.Users.Services
 {
     public class EmailService
     {
-        private const string purpose = "email_verification";
+        private const string email_verification = "email_verification";
 
         private readonly IUsersDbContext usersDbContext;
         private readonly CredentialManager credentialManager;
@@ -64,15 +64,15 @@ namespace InternetId.Users.Services
 
             var email = user.Email;
 
-            var shortcode = await credentialManager.CreateShortcodeAsync(purpose, user.Id.ToString(), data: email);
-            var purposeOptions = credentialManager.GetPurposeOptions(purpose);
+            var shortcode = await credentialManager.CreateShortcodeAsync(email_verification, user.Id.ToString(), data: email);
+            var purposeOptions = credentialManager.GetPurposeOptions(email_verification);
 
-            await emailer.SendEmailAsync(email, "Email Verification Code", $"<strong>{Encode(shortcode)}</strong> is your email verification code and will be valid for {TimeSpan.FromDays(purposeOptions.LifespanDays).Humanize()}. Use it to demonstrate that you have access to this email account.");
+            await emailer.SendEmailAsync(email, "Email Verification Code", $"<strong>{Encode(shortcode)}</strong> is your email verification code and is valid for {TimeSpan.FromDays(purposeOptions.LifespanDays).Humanize()}. Use it to demonstrate that you have access to this email account.");
         }
 
         public async Task<CredentialResult> VerifyAsync(User user, string code)
         {
-            var result = await credentialManager.VerifyShortcodeAsync(purpose, user.Id.ToString(), code, removeIfVerified: false);
+            var result = await credentialManager.VerifyShortcodeAsync(email_verification, user.Id.ToString(), code, removeIfVerified: false);
 
             if (result.Outcome == VerifySecretOutcome.Verified)
             {
@@ -87,7 +87,7 @@ namespace InternetId.Users.Services
                 dbUser.EmailVerified = true;
                 await usersDbContext.SaveChangesAsync();
 
-                await credentialManager.RemoveCredentialAsync(purpose, user.Id.ToString());
+                await credentialManager.RemoveCredentialAsync(email_verification, user.Id.ToString());
             }
 
             return result;

@@ -6,13 +6,15 @@ using Microsoft.Extensions.Options;
 using System;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace InternetId.Credentials
 {
     public class CredentialManager : IDisposable
     {
-        private const string shortcodeTokens = "abcdefghijklmnopqrstuvwxyz";
+        private const string alphaTokens = "abcdefghijklmnopqrstuvwxyz";
+        private const string numericTokens = "0123456789";
 
         private readonly Hasher passwordHasher;
         private readonly ILogger<CredentialManager> logger;
@@ -35,7 +37,7 @@ namespace InternetId.Credentials
         }
 
         /// <summary>
-        /// Returns a random 6 letter shortcode after creating a new credential or updates the matching credential.
+        /// Returns a random 6-digit code after creating a new credential or updates the matching credential.
         /// </summary>
         /// <param name="purpose"></param>
         /// <param name="key"></param>
@@ -43,7 +45,7 @@ namespace InternetId.Credentials
         /// <returns></returns>
         public async Task<string> CreateShortcodeAsync(string purpose, string key, string data = "")
         {
-            string secret = string.Concat(Enumerable.Range(0, 6).Select(i => shortcodeTokens[RandomNumberGenerator.GetInt32(0, shortcodeTokens.Length)]));
+            string secret = string.Concat(Enumerable.Range(0, 6).Select(i => numericTokens[RandomNumberGenerator.GetInt32(0, numericTokens.Length)]));
 
             await SetCredentialAsync(purpose, key, secret, data);
 
@@ -110,7 +112,7 @@ namespace InternetId.Credentials
             string secret = shortcode?.ToLowerInvariant() ?? string.Empty;
 
             // Remove invalid characters
-            secret = string.Concat(secret.Where(ch => shortcodeTokens.Contains(ch)));
+            secret = string.Concat(secret.Where(ch => numericTokens.Contains(ch)));
 
             return await VerifySecretAsync(purpose, key, secret, removeIfVerified);
         }
@@ -227,7 +229,8 @@ namespace InternetId.Credentials
 
         private string HashSecret(string purpose, string key, string secret, string data, TimeSpan lifespan)
         {
-            return passwordHasher.Hash(purpose + key + secret + data, Math.Pow(10, secret.Length), lifespan);
+            var x = Regex.IsMatch(secret, "[A-Za-z]") ? 26 : 10;
+            return passwordHasher.Hash(purpose + key + secret + data, Math.Pow(x, secret.Length), lifespan);
         }
 
         private HasherVerificationResult VerifyHashedSecret(Credential credential, string secret)

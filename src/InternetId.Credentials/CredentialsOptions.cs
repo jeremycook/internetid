@@ -8,17 +8,20 @@ namespace InternetId.Credentials
 
         public class PurposeOptions
         {
+            /// <summary>
+            /// Defaults to <c>false</c>.
+            /// </summary>
             public bool Enabled { get; set; }
             /// <summary>
-            /// Configurable, defaults to 1 hour.
+            /// Defaults to 10 minutes.
             /// </summary>
-            public float LifespanDays { get; set; } = 1f / 24f;
+            public float LifespanDays { get; set; } = 10f / 60f / 24f;
             /// <summary>
-            /// Configurable, defaults to 10 minutes.
+            /// Defaults to 10 minutes.
             /// </summary>
             public float LockMinutes { get; set; } = 10;
             /// <summary>
-            /// Configurable, defaults to 10.
+            /// Defaults to 10.
             /// </summary>
             public int AttemptsPerLockout { get; set; } = 10;
         }

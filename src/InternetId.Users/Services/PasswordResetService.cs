@@ -11,7 +11,7 @@ namespace InternetId.Users.Services
 {
     public class PasswordResetService
     {
-        private const string purpose = "password_reset";
+        private const string password_reset = "password_reset";
 
         private readonly CredentialManager credentialManager;
         private readonly PasswordService passwordService;
@@ -30,10 +30,10 @@ namespace InternetId.Users.Services
 
             if (string.IsNullOrWhiteSpace(user.Email)) throw new ValidationException($"The user does not have an email address for sending a password reset code to.");
 
-            var shortcode = await credentialManager.CreateShortcodeAsync(purpose, user.Id.ToString());
-            var purposeOptions = credentialManager.GetPurposeOptions(purpose);
+            var shortcode = await credentialManager.CreateShortcodeAsync(password_reset, user.Id.ToString());
+            var purposeOptions = credentialManager.GetPurposeOptions(password_reset);
 
-            await emailer.SendEmailAsync(user.Email, "Password Reset Code", $"<strong>{Encode(shortcode)}</strong> is your password reset code and will be valid for {TimeSpan.FromDays(purposeOptions.LifespanDays).Humanize()}. Use it to reset your password.");
+            await emailer.SendEmailAsync(user.Email, "Password Reset Code", $"<strong>{Encode(shortcode)}</strong> is your password reset code and is valid for {TimeSpan.FromDays(purposeOptions.LifespanDays).Humanize()}. Use it to reset your password.");
         }
 
         /// <summary>
@@ -49,14 +49,14 @@ namespace InternetId.Users.Services
             if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException($"'{nameof(code)}' cannot be null or empty.", nameof(code));
             if (string.IsNullOrWhiteSpace(password)) throw new ArgumentException($"'{nameof(password)}' cannot be null or empty.", nameof(password));
 
-            var result = await credentialManager.VerifyShortcodeAsync(purpose, user.Id.ToString(), code, removeIfVerified: false);
+            var result = await credentialManager.VerifyShortcodeAsync(password_reset, user.Id.ToString(), code, removeIfVerified: false);
 
             if (result.Outcome == VerifySecretOutcome.Verified)
             {
                 await passwordService.SetPasswordAsync(user, password);
 
                 // Success, delete the shortcode.
-                await credentialManager.RemoveCredentialAsync(purpose, user.Id.ToString());
+                await credentialManager.RemoveCredentialAsync(password_reset, user.Id.ToString());
             }
 
             return result;

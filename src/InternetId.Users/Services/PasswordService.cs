@@ -11,7 +11,7 @@ namespace InternetId.Users.Services
 {
     public class PasswordService
     {
-        private const string purpose = "password";
+        private const string password = "password";
 
         private readonly ILogger<PasswordService> logger;
         private readonly CredentialManager credentialManager;
@@ -64,7 +64,7 @@ namespace InternetId.Users.Services
                 throw new ValidationException("The password is considered weak. Please enter another password.");
             }
 
-            await credentialManager.SetCredentialAsync(purpose, user.Id.ToString(), password);
+            await credentialManager.SetCredentialAsync(PasswordService.password, user.Id.ToString(), password);
         }
 
         /// <summary>
@@ -110,7 +110,7 @@ namespace InternetId.Users.Services
 
             password = password.Trim();
 
-            var result = await credentialManager.VerifySecretAsync(purpose, user.Id.ToString(), password, removeIfVerified: false);
+            var result = await credentialManager.VerifySecretAsync(PasswordService.password, user.Id.ToString(), password, removeIfVerified: false);
             return result;
         }
     }

@@ -68,7 +68,7 @@ namespace InternetId.Common.Crypto
             byte[] salt = new byte[saltBytes];
             RandomNumberGenerator.Fill(salt);
 
-            return Hash(password, combinations, salt, rfc2898, utcNow.AddSeconds(-1), utcNow.Add(lifespan));
+            return Hash(password, combinations, salt, rfc2898, utcNow.AddMinutes(-1), utcNow.Add(lifespan));
         }
 
         /// <summary>
@@ -145,7 +145,7 @@ namespace InternetId.Common.Crypto
                 if (iterationBooster > 1)
                 {
                     // Increase iterations to compensate and try again.
-                    iterations = (int)Math.Min(maximumIterations, Math.Max(minimumIterations,1.1 * iterations * iterationBooster));
+                    iterations = (int)Math.Min(maximumIterations, Math.Max(minimumIterations, 1.1 * iterations * iterationBooster));
                 }
                 else
                 {
