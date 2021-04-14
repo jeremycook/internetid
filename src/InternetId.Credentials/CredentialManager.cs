@@ -37,7 +37,23 @@ namespace InternetId.Credentials
         }
 
         /// <summary>
-        /// Returns a random 6-digit code after creating a new credential or updates the matching credential.
+        /// Returns a random 8 digit code after creating a new credential or updating the matching credential.
+        /// </summary>
+        /// <param name="purpose"></param>
+        /// <param name="key"></param>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        public async Task<string> CreatePinAsync(string purpose, string key, string data = "")
+        {
+            string secret = string.Concat(Enumerable.Range(0, 8).Select(i => numericTokens[RandomNumberGenerator.GetInt32(0, numericTokens.Length)]));
+
+            await SetCredentialAsync(purpose, key, secret, data);
+
+            return secret;
+        }
+
+        /// <summary>
+        /// Returns a random 6 letter code after creating a new credential or updating the matching credential.
         /// </summary>
         /// <param name="purpose"></param>
         /// <param name="key"></param>
@@ -45,7 +61,7 @@ namespace InternetId.Credentials
         /// <returns></returns>
         public async Task<string> CreateShortcodeAsync(string purpose, string key, string data = "")
         {
-            string secret = string.Concat(Enumerable.Range(0, 6).Select(i => numericTokens[RandomNumberGenerator.GetInt32(0, numericTokens.Length)]));
+            string secret = string.Concat(Enumerable.Range(0, 6).Select(i => alphaTokens[RandomNumberGenerator.GetInt32(0, alphaTokens.Length)]));
 
             await SetCredentialAsync(purpose, key, secret, data);
 
@@ -100,6 +116,23 @@ namespace InternetId.Credentials
         }
 
         /// <summary>
+        /// Verifies a 8 digit code, automatically removing invalid characters before verifying.
+        /// </summary>
+        /// <param name="purpose"></param>
+        /// <param name="key"></param>
+        /// <param name="pin"></param>
+        /// <returns></returns>
+        public async Task<CredentialResult> VerifyPinAsync(string purpose, string key, string pin, bool removeIfVerified)
+        {
+            string secret = pin ?? string.Empty;
+
+            // Keep valid characters
+            secret = string.Concat(secret.Where(ch => numericTokens.Contains(ch)));
+
+            return await VerifySecretAsync(purpose, key, secret, removeIfVerified);
+        }
+
+        /// <summary>
         /// Verifies a 6 letter shortcode, automatically removing invalid characters before verifying.
         /// </summary>
         /// <param name="purpose"></param>
@@ -111,8 +144,8 @@ namespace InternetId.Credentials
             // Shortcodes will always be lowercase
             string secret = shortcode?.ToLowerInvariant() ?? string.Empty;
 
-            // Remove invalid characters
-            secret = string.Concat(secret.Where(ch => numericTokens.Contains(ch)));
+            // Keep valid characters
+            secret = string.Concat(secret.Where(ch => alphaTokens.Contains(ch)));
 
             return await VerifySecretAsync(purpose, key, secret, removeIfVerified);
         }
