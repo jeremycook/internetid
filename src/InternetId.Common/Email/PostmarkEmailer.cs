@@ -29,7 +29,7 @@ namespace InternetId.Common.Email
                 From = internetIdOptions.Value.EmailFromAddress,
                 TrackOpens = true,
                 Subject = subject,
-                TextBody = Html.Strip(htmlBody),
+                TextBody = Html.Strip(htmlMessage),
                 HtmlBody = htmlBody,
                 MessageStream = "outbound",
             };
