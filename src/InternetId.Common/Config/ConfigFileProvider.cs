@@ -40,7 +40,11 @@ namespace InternetId.Common.Config
                 configRoot = Path.GetFullPath("../config");
             }
 
-            if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
+            if (Directory.Exists(configRoot))
+            {
+                // Use it
+            }
+            else if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
             {
                 Directory.CreateDirectory(configRoot);
             }
