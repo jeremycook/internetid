@@ -1,70 +1,69 @@
 ﻿using System;
+using System.Text.Json.Serialization;
 
 namespace InternetId.Common.Crypto
 {
     public class Hash
     {
-        public Hash() { }
         public Hash(byte[] key, string algorithm, byte[] salt, int iterations, DateTimeOffset notBefore, DateTimeOffset notAfter)
         {
-            K = key;
-            A = algorithm;
-            S = salt;
-            I = iterations;
-            NB = notBefore;
-            NA = notAfter;
+            Key = key;
+            Algorithm = algorithm;
+            Salt = salt;
+            Iterations = iterations;
+            NotBefore = notBefore;
+            NotAfter = notAfter;
         }
 
         /// Key
-        public byte[] K { get; set; }
+        [JsonPropertyName("k")]
+        public byte[] Key { get; set; }
 
         /// <summary>
         /// Algorithm
         /// </summary>
-        public string A { get; set; }
+        [JsonPropertyName("a")]
+        public string Algorithm { get; set; }
 
         /// <summary>
         /// Salt
         /// </summary>
-        public byte[] S { get; set; }
+        [JsonPropertyName("s")]
+        public byte[] Salt { get; set; }
 
         /// <summary>
         /// Iterations
         /// </summary>
-        public int I { get; set; }
+        [JsonPropertyName("i")]
+        public int Iterations { get; set; }
 
         /// <summary>
         /// Not valid before
         /// </summary>
-        public DateTimeOffset NB { get; set; }
+        [JsonPropertyName("nb")]
+        public DateTimeOffset NotBefore { get; set; }
 
         /// <summary>
         /// Not valid after
         /// </summary>
-        public DateTimeOffset NA { get; set; }
-
-        public byte[] GetKey() => K;
-        public string GetAlgorithm() => A;
-        public byte[] GetSalt() => S;
-        public int GetIterations() => I;
-        public DateTimeOffset GetNotBefore() => NB;
-        public DateTimeOffset GetNotAfter() => NA;
+        [JsonPropertyName("na")]
+        public DateTimeOffset NotAfter { get; set; }
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(K, A, S, I, NB, NA);
+            return HashCode.Combine(Key, Algorithm, Salt, Iterations, NotBefore, NotAfter);
         }
 
         public override bool Equals(object obj)
         {
             return
                 obj is Hash hash &&
-                SlowEquals(K, hash.K) &&
-                SlowEquals(A, hash.A) &&
-                SlowEquals(S, hash.S) &&
-                I == hash.I &&
-                NB.Equals(hash.NB) &&
-                NA.Equals(hash.NA);
+                SlowEquals(Key, hash.Key) &&
+                SlowEquals(Algorithm, hash.Algorithm) &&
+                SlowEquals(Salt, hash.Salt) &&
+                Iterations == hash.Iterations &&
+                NotBefore.Equals(hash.NotBefore) &&
+                NotAfter.Equals(hash.NotAfter);
         }
 
         /// <summary>

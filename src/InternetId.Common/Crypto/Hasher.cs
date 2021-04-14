@@ -168,11 +168,11 @@ namespace InternetId.Common.Crypto
 
             Hash hash = JsonSerializer.Deserialize<Hash>(hashString, jsonSerializerOptions)!;
 
-            byte[] salt = hash.GetSalt();
-            string algorithm = hash.GetAlgorithm();
-            int iterations = hash.GetIterations();
-            DateTimeOffset notBefore = hash.GetNotBefore();
-            DateTimeOffset notAfter = hash.GetNotAfter();
+            byte[] salt = hash.Salt;
+            string algorithm = hash.Algorithm;
+            int iterations = hash.Iterations;
+            DateTimeOffset notBefore = hash.NotBefore;
+            DateTimeOffset notAfter = hash.NotAfter;
 
             byte[] key = CalculateKey(password, salt, algorithm, iterations, notBefore, notAfter);
 

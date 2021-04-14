@@ -16,7 +16,7 @@ namespace InternetId.Tests
         private static readonly DateTimeOffset notAfter50Years = notBefore.AddYears(50);
         private static readonly DateTimeOffset notAfter100Years = notBefore.AddYears(100);
 
-        private static readonly DateTimeOffset validNow = notBefore.AddMinutes(30);
+        private static readonly DateTimeOffset validNow = notBefore.AddSeconds(1);
 
         private static readonly byte[] salt = Convert.FromBase64String("fH6CQViPiFl9K9I2OEVSRg==");
 
@@ -64,6 +64,16 @@ namespace InternetId.Tests
             string base64key = Convert.ToBase64String(key);
 
             Assert.AreEqual("E/LveZq0mDWiXbdp0NBBNsZMgNuK0VkX/A44vuGWsH8=", base64key);
+        }
+
+        [TestMethod]
+        public void Hash_1_hour_8_digit_pin()
+        {
+            string hashPin = validHasher.Hash("12345678", Math.Pow(10, 8), salt, rfc2898, notBefore, notAfter1Hour);
+
+            Assert.AreEqual(
+                "{\"k\":\"VCa7waagUiVC4l6vgTu1rJDiK8+iBuMcChF02RQw6Zc=\",\"a\":\"rfc2898\",\"s\":\"fH6CQViPiFl9K9I2OEVSRg==\",\"i\":220000,\"nb\":\"2021-04-01T23:39:48+00:00\",\"na\":\"2021-04-02T00:39:48+00:00\"}",
+                hashPin);
         }
 
         [TestMethod]
