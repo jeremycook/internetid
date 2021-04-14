@@ -48,7 +48,17 @@ namespace InternetId.Server
 
             services.AddInternetId(Configuration.GetSection("InternetId"));
             services.AddInternetIdHasher();
-            services.AddInternetIdSmtpEmailer(Configuration.GetSection("SmtpEmailer"));
+
+            IConfigurationSection postmarkEmailerOptions = Configuration.GetSection("PostmarkEmailer");
+            if (postmarkEmailerOptions.Exists())
+            {
+                services.AddInternetIdPostmarkEmailer(postmarkEmailerOptions);
+            }
+            else
+            {
+                services.AddInternetIdSmtpEmailer(Configuration.GetSection("SmtpEmailer"));
+            }
+
             services.AddInternetIdCredentials(Configuration.GetSection("Credentials"), options => options.UseNpgsql(CreateConnection("Credentials")));
             services.AddInternetIdUsers(Configuration.GetSection("PwnedPasswordsClient"), options => options.UseNpgsql(CreateConnection("Users")));
             services.AddInternetIdServer(options => options.UseNpgsql(CreateConnection("OpenIddict")));

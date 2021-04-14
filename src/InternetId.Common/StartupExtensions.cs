@@ -22,5 +22,11 @@ namespace Microsoft.Extensions.DependencyInjection
             services.Configure<SmtpEmailerOptions>(smtpEmailerOptions);
             services.AddScoped<IEmailer, SmtpEmailer>();
         }
+
+        public static void AddInternetIdPostmarkEmailer(this IServiceCollection services, IConfigurationSection postmarkEmailerOptions)
+        {
+            services.Configure<PostmarkEmailerOptions>(postmarkEmailerOptions);
+            services.AddScoped<IEmailer, PostmarkEmailer>();
+        }
     }
 }
