@@ -25,7 +25,7 @@ docker-build:
       fi
     - |
       cd src
-      docker build --pull -t "$CI_REGISTRY_IMAGE${tag}" -t "DOCKER_REGISTRY_IMAGE${tag}" .
+      docker build --pull -t "$CI_REGISTRY_IMAGE${tag}" .
       docker push "$CI_REGISTRY_IMAGE${tag}"
     - |
       if [[ ! -z "$DOCKER_REGISTRY_USER" ]]
