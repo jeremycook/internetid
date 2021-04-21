@@ -15,7 +15,8 @@ docker-build:
   # All other branches are tagged with the escaped branch name (commit ref slug)
   script:
     - |
-      if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then
+      if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]
+      then
         tag=""
         echo "Running on default branch '$CI_DEFAULT_BRANCH': tag = 'latest'"
       else
@@ -27,10 +28,10 @@ docker-build:
       docker build --pull -t "$CI_REGISTRY_IMAGE${tag}" -t "DOCKER_REGISTRY_IMAGE${tag}" .
       docker push "$CI_REGISTRY_IMAGE${tag}"
     - |
-      if [ ! -z "$DOCKER_REGISTRY_USER" ]
+      if [[ ! -z "$DOCKER_REGISTRY_USER" ]]
       then
         docker login -u "$DOCKER_REGISTRY_USER" -p "$DOCKER_REGISTRY_PASSWORD"
-        docker image tag "$CI_REGISTRY_IMAGE${tag}" "DOCKER_REGISTRY_IMAGE${tag}"
+        docker image tag "$CI_REGISTRY_IMAGE${tag}" "$DOCKER_REGISTRY_IMAGE${tag}"
         docker push "$DOCKER_REGISTRY_IMAGE${tag}"
       fi
   # Run this job in a branch where a Dockerfile exists
