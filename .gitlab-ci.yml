@@ -31,7 +31,7 @@ docker-build:
       then
         docker login -u "$DOCKER_REGISTRY_USER" -p "$DOCKER_REGISTRY_PASSWORD"
         docker image tag "$CI_REGISTRY_IMAGE${tag}" "DOCKER_REGISTRY_IMAGE${tag}"
-        docker push "DOCKER_REGISTRY_IMAGE${tag}"
+        docker push "$DOCKER_REGISTRY_IMAGE${tag}"
       fi
   # Run this job in a branch where a Dockerfile exists
   rules:
