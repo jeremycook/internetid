@@ -4,6 +4,7 @@
     <TargetFramework>net5.0</TargetFramework>
     <Nullable>enable</Nullable>
     <CopyRefAssembliesToPublishDirectory>false</CopyRefAssembliesToPublishDirectory>
+    <UserSecretsId>43495e35-ae1d-4a21-bca3-9f40c2082627</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,13 +20,15 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="5.0.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" PrivateAssets="All" Version="5.0.5" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="5.0.2" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="5.0.2" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="5.0.5.1" />
     <PackageReference Include="OpenIddict.AspNetCore" Version="3.0.3" />
     <PackageReference Include="OpenIddict.EntityFrameworkCore" Version="3.0.3" />
     <PackageReference Include="Seq.Extensions.Logging" Version="6.0.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\InternetId.DatabaseConfiguration\InternetId.DatabaseConfiguration.csproj" />
+    <ProjectReference Include="..\InternetId.Npgsql\InternetId.Npgsql.csproj" />
     <ProjectReference Include="..\InternetId.OpenIddict\InternetId.OpenIddict.csproj" />
     <ProjectReference Include="..\InternetId.Users\InternetId.Users.csproj" />
   </ItemGroup>
