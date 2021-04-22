@@ -9,6 +9,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Npgsql;
+using Serilog;
+using Serilog.Events;
 using System;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
@@ -29,17 +31,6 @@ namespace InternetId.Server
 
         public void ConfigureServices(IServiceCollection services)
         {
-            if (Configuration.GetSection("Seq") is IConfigurationSection seq &&
-                seq.Exists())
-            {
-                services.AddLogging(loggingBuilder => loggingBuilder
-                    .AddSeq(
-                        serverUrl: seq.GetValue<string>("ServerUrl"),
-                        apiKey: seq.GetValue<string>("ApiKey")
-                    )
-                );
-            }
-
             services.AddControllersWithViews(options =>
             {
                 options.Conventions.Add(new RouteTokenTransformerConvention(new SlugifyParameterTransformer()));
@@ -84,6 +75,8 @@ namespace InternetId.Server
             }
             app.UseHttpsRedirection();
             app.UseStaticFiles();
+
+            app.UseSerilogRequestLogging();
 
             app.UseRouting();
 

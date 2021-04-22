@@ -12,4 +12,8 @@
     <PackageReference Include="Npgsql" Version="5.0.4" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\InternetId.Common\InternetId.Common.csproj" />
+  </ItemGroup>
+
 </Project>

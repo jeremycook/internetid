@@ -1,7 +1,9 @@
 ﻿using Humanizer;
 using Microsoft.Extensions.Configuration;
 using Npgsql;
+using Serilog;
 using System;
+using System.Linq;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -36,7 +38,15 @@ namespace InternetId.Npgsql
             if (!string.IsNullOrWhiteSpace(caCertificateText))
             {
                 ValidateCaCertificate(connection, caCertificateText);
+                Log.Information("Validating {ConnectionStringName} connection string with CA certificate: {CaCertificate}", connectionStringName, caCertificateText?.Truncate(35));
             }
+
+            var connectionStringBuilder = new NpgsqlConnectionStringBuilder(connectionString);
+            Log.Information(
+                "Built {ConnectionStringName} connection string: {ConnectionString}", connectionStringName,
+                string.Join("; ", connectionStringBuilder.Keys
+                    .Except(new[] { "Password", "PWD" }, StringComparer.InvariantCultureIgnoreCase)
+                    .Select(k => k + "=" + connectionStringBuilder[k]?.ToString()?.Truncate(5))));
 
             return connection;
         }
