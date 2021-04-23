@@ -76,7 +76,7 @@ namespace InternetId.Server
             app.UseHttpsRedirection();
             app.UseStaticFiles();
 
-            app.UseSerilogRequestLogging();
+            app.UseSerilogRequestLogging(o => o.EnrichDiagnosticContext = Program.SerilogEnrichFromRequest);
 
             app.UseRouting();
 
