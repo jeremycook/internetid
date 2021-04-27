@@ -30,7 +30,7 @@ namespace InternetId.MvcClient
                 options.ClientId = "mvc";
                 options.ClientSecret = "901564A5-E7FE-42CB-B10D-61EF6A8F3654";
 
-                options.RequireHttpsMetadata = false;
+                options.RequireHttpsMetadata = false; // Should be true in production
                 options.GetClaimsFromUserInfoEndpoint = true;
                 options.SaveTokens = true;
 

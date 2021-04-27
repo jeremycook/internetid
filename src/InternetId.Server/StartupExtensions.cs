@@ -3,14 +3,21 @@ using InternetId.Server;
 using InternetId.Server.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using System;
+using System.Security.Cryptography.X509Certificates;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
     public static class StartupExtensions
     {
-        public static void AddInternetIdServer(this IServiceCollection services, Action<DbContextOptionsBuilder> openIddictDbContextOptionsBuilder)
+        public static void AddInternetIdServer(
+            this IServiceCollection services,
+            IHostEnvironment environment,
+            IConfiguration configuration,
+            Action<DbContextOptionsBuilder> openIddictDbContextOptionsBuilder)
         {
             services.AddHttpContextAccessor();
 
@@ -67,8 +74,26 @@ namespace Microsoft.Extensions.DependencyInjection
                     options.AllowAuthorizationCodeFlow();
 
                     // Register the signing and encryption credentials.
-                    options.AddDevelopmentEncryptionCertificate()
-                           .AddDevelopmentSigningCertificate();
+                    if (environment.IsDevelopment())
+                    {
+                        options.AddDevelopmentEncryptionCertificate()
+                               .AddDevelopmentSigningCertificate();
+                    }
+                    else
+                    {
+                        var encryptionCertificate = X509Certificate2.CreateFromPem(
+                            certPem: configuration.GetValue<string?>("ENCRYPTION_CERTIFICATE") ?? throw new Exception("Missing ENCRYPTION_CERTIFICATE configuration in PEM format. See Readme.md for more info."),
+                            keyPem: configuration.GetValue<string>("ENCRYPTION_KEY") ?? throw new Exception("Missing ENCRYPTION_KEY configuration in PEM format. See Readme.md for more info.")
+                        );
+
+                        var signingCertificate = X509Certificate2.CreateFromPem(
+                            certPem: configuration.GetValue<string?>("SIGNING_CERTIFICATE") ?? throw new Exception("Missing SIGNING_CERTIFICATE configuration in PEM format. See Readme.md for more info."),
+                            keyPem: configuration.GetValue<string>("SIGNING_KEY") ?? throw new Exception("Missing SIGNING_KEY configuration in PEM format. See Readme.md for more info.")
+                        );
+
+                        options.AddEncryptionCertificate(encryptionCertificate)
+                               .AddSigningCertificate(signingCertificate);
+                    }
 
                     // Register the ASP.NET Core host and configure the ASP.NET Core-specific options.
                     options.UseAspNetCore()

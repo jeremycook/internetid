@@ -55,7 +55,7 @@ namespace InternetId.Server
 
             services.AddInternetIdCredentials(Configuration.GetSection("Credentials"), options => options.UseNpgsql(NpgsqlConnectionBuilder.Build(Configuration, "Credentials")));
             services.AddInternetIdUsers(Configuration.GetSection("PwnedPasswordsClient"), options => options.UseNpgsql(NpgsqlConnectionBuilder.Build(Configuration, "Users")));
-            services.AddInternetIdServer(options => options.UseNpgsql(NpgsqlConnectionBuilder.Build(Configuration, "OpenIddict")));
+            services.AddInternetIdServer(HostEnvironment, Configuration, options => options.UseNpgsql(NpgsqlConnectionBuilder.Build(Configuration, "OpenIddict")));
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
