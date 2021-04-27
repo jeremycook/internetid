@@ -13,6 +13,8 @@ namespace InternetId.MvcClient
     {
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddCookiePolicy(options => options.MinimumSameSitePolicy = Microsoft.AspNetCore.Http.SameSiteMode.Strict);
+
             services.AddAuthentication(options =>
             {
                 options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
