@@ -24,7 +24,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 options.Secure = AspNetCore.Http.CookieSecurePolicy.Always;
                 options.HttpOnly = AspNetCore.CookiePolicy.HttpOnlyPolicy.Always;
             });
-
+            services.AddAntiforgery(options => options.Cookie.SecurePolicy = AspNetCore.Http.CookieSecurePolicy.Always);
             services.AddHttpContextAccessor();
 
             services.AddScoped<SignInManager>();
