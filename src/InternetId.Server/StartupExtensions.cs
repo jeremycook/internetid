@@ -25,7 +25,11 @@ namespace Microsoft.Extensions.DependencyInjection
                 options.Secure = AspNetCore.Http.CookieSecurePolicy.Always;
                 options.HttpOnly = AspNetCore.CookiePolicy.HttpOnlyPolicy.Always;
             });
-            services.AddAntiforgery(options => options.Cookie.SecurePolicy = AspNetCore.Http.CookieSecurePolicy.Always);
+            services.AddAntiforgery(options =>
+            {
+                options.Cookie.SecurePolicy = AspNetCore.Http.CookieSecurePolicy.Always;
+                options.Cookie.HttpOnly = true;
+            });
             services.AddHttpContextAccessor();
 
             services.AddScoped<SignInManager>();
@@ -37,7 +41,8 @@ namespace Microsoft.Extensions.DependencyInjection
                 })
                 .AddCookie(options =>
                 {
-                    options.Cookie.SameSite = AspNetCore.Http.SameSiteMode.Strict;
+                    options.Cookie.SecurePolicy = AspNetCore.Http.CookieSecurePolicy.Always;
+                    options.Cookie.HttpOnly = true;
 
                     options.AccessDeniedPath = "/access-denied";
                     options.LoginPath = "/login";
