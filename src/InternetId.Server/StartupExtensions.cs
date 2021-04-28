@@ -21,6 +21,7 @@ namespace Microsoft.Extensions.DependencyInjection
         {
             services.AddCookiePolicy(options =>
             {
+                options.MinimumSameSitePolicy = AspNetCore.Http.SameSiteMode.Strict;
                 options.Secure = AspNetCore.Http.CookieSecurePolicy.Always;
                 options.HttpOnly = AspNetCore.CookiePolicy.HttpOnlyPolicy.Always;
             });
