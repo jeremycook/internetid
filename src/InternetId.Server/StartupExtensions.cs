@@ -19,8 +19,6 @@ namespace Microsoft.Extensions.DependencyInjection
             IConfiguration configuration,
             Action<DbContextOptionsBuilder> openIddictDbContextOptionsBuilder)
         {
-            services.AddCookiePolicy(options => options.MinimumSameSitePolicy = AspNetCore.Http.SameSiteMode.Lax);
-
             services.AddHttpContextAccessor();
 
             services.AddScoped<SignInManager>();
