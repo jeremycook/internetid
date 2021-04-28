@@ -19,6 +19,12 @@ namespace Microsoft.Extensions.DependencyInjection
             IConfiguration configuration,
             Action<DbContextOptionsBuilder> openIddictDbContextOptionsBuilder)
         {
+            services.AddCookiePolicy(options =>
+            {
+                options.Secure = AspNetCore.Http.CookieSecurePolicy.Always;
+                options.HttpOnly = AspNetCore.CookiePolicy.HttpOnlyPolicy.Always;
+            });
+
             services.AddHttpContextAccessor();
 
             services.AddScoped<SignInManager>();
