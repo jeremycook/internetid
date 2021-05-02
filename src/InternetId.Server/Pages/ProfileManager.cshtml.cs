@@ -65,7 +65,7 @@ namespace InternetId.Server.Pages
 
                 if (ModelState.IsValid)
                 {
-                    user.Name = Input.Name;
+                    user.Name = Input.Name!;
                     var changes = await usersDb.SaveChangesAsync();
 
                     if (changes > 0)
