@@ -1,0 +1,53 @@
+﻿@model CreateViewModel
+@{ Layout = "_ThinLayout";
+    ViewData["Title"] = "Create an OpenID Connect client"; }
+
+<div class="card">
+    <div class="card-body">
+        <div class="text-center">
+            <h2>
+                Create a client
+            </h2>
+            <p class="lead">
+                A client allows users of your web app to log into it
+                with their InternetID using OpenID Connect technology.
+            </p>
+        </div>
+
+        <form method="post">
+            <div asp-validation-summary="All" class="text-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="Name"></label>
+                <input class="form-control" asp-for="Name" autofocus autocomplete="off" />
+            </div>
+
+            <p class="alert alert-info span-card">
+                Consult the documentation of your OpenID Connect client to determine appropriate values for the redirect and post logout redirect URLs.
+            </p>
+
+            <div class="mb-3">
+                <label asp-for="RedirectUrl"></label>
+                <input class="form-control" asp-for="RedirectUrl" autocomplete="off" />
+                <div class="text-muted">
+                    https://yourwebsite.com/signin-oidc
+                </div>
+            </div>
+            <div class="mb-3">
+                <label asp-for="PostLogoutRedirectUrl"></label>
+                <input class="form-control" asp-for="PostLogoutRedirectUrl" autocomplete="off" />
+                <div class="text-muted">
+                    https://yourwebsite.com/signout-callback-oidc
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <button type="submit" class="btn btn-primary">Create Client</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

@@ -1,0 +1,56 @@
+﻿@model OpenIddictApplicationDescriptor
+@{ ViewData["Title"] = "Client created";
+    Layout = "_ThinLayout"; }
+
+<div class="card">
+    <div class="card-body">
+        <div class="text-center">
+            <h1>
+                Client created
+            </h1>
+            <p class="lead">
+                Your OpenID Connect client has been created
+            </p>
+        </div>
+
+        <table class="mb-3 table table-sm">
+            <tr>
+                <th>Client name</th>
+                <td>@Model.DisplayName</td>
+            </tr>
+            <tr>
+                <th>Redirect URL</th>
+                <td>@Model.RedirectUris.FirstOrDefault()</td>
+            </tr>
+            <tr>
+                <th>Post logout redirect URL</th>
+                <td>@Model.PostLogoutRedirectUris.FirstOrDefault()</td>
+            </tr>
+        </table>
+
+        <div class="card mb-3">
+            <p class="alert alert-info">
+                Please copy the following values, and keep the client secret safe.
+                The client secret cannot be recovered once you leave this page.
+            </p>
+            <div class="card-body pt-0">
+                <div class="mb-3">
+                    Authority
+                    <input readonly value="@Context.Request.Scheme://@Context.Request.Host" class="form-control border-primary bg-transparent" />
+                </div>
+                <div class="mb-3">
+                    Client ID
+                    <input readonly value="@Model.ClientId" class="form-control border-primary bg-transparent" />
+                </div>
+                <div>
+                    Client secret
+                    <input readonly value="@Model.ClientSecret" class="form-control border-primary bg-transparent" />
+                </div>
+            </div>
+        </div>
+
+        <p class="text-center">
+            <a href="~/" class="btn btn-outline-primary">Got it!</a>
+        </p>
+    </div>
+</div>
