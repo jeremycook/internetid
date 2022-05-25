@@ -12,6 +12,16 @@ namespace InternetId.Npgsql
 {
     public static class NpgsqlConnectionBuilder
     {
+        public static bool ConnectionStringExists(IConfiguration configuration, string connectionStringName)
+        {
+            string? connectionString =
+                configuration.GetValue<string?>("ConnectionStrings:" + connectionStringName) ??
+                configuration.GetValue<string?>(connectionStringName.Underscore().ToUpperInvariant() + "_CONNECTION_STRING");
+
+            return !string.IsNullOrEmpty(connectionString);
+        }
+
+
         /// <summary>
         /// Create an <see cref="NpgsqlConnection"/>, including a CA certificate check 
         /// if a "ConnectionStrings:{ConnectionStringName}CaCertficiate" or 

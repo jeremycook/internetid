@@ -12,11 +12,22 @@ namespace Microsoft.Extensions.Configuration
             return builder.Add(new DatabaseConfigurationSource(dbConnection, selectSql));
         }
 
+        /// <summary>
+        /// Adds an NPGSQL configuration source if a configuration database connection string exists.
+        /// </summary>
+        /// <param name="builder"></param>
+        /// <param name="fallbackSelectSql"></param>
+        /// <returns></returns>
         public static IConfigurationBuilder AddNpgsqlConfigurationSource(this IConfigurationBuilder builder, string fallbackSelectSql = "SELECT id, value FROM public.appsettings")
         {
             Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 
             var tempConfiguration = builder.Build();
+
+            if (!NpgsqlConnectionBuilder.ConnectionStringExists(tempConfiguration, "Configuration"))
+            {
+                return builder;
+            }
 
             NpgsqlConnection dbConnection = NpgsqlConnectionBuilder.Build(tempConfiguration, "Configuration");
 
