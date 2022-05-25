@@ -46,12 +46,12 @@ namespace InternetId.EntityFrameworkCore
         /// </summary>
         /// <param name="entityType"></param>
         /// <returns></returns>
-        private static bool HasTable(this IEntityType entityType)
+        private static bool HasTable(this IReadOnlyEntityType entityType)
         {
             return
                 entityType.ClrType != null &&
                 entityType.BaseType == null &&
-                entityType.DefiningEntityType == null &&
+                !entityType.HasSharedClrType &&
                 entityType.GetSqlQuery() == null;
         }
 
