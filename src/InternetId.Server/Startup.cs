@@ -2,6 +2,7 @@ using InternetId.Common.Config;
 using InternetId.Npgsql;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -31,6 +32,12 @@ namespace InternetId.Server
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.Configure<ForwardedHeadersOptions>(options =>
+            {
+                options.ForwardedHeaders = ForwardedHeaders.All;
+                options.ForwardLimit = 1;
+            });
+
             services.AddControllersWithViews(options =>
             {
                 options.Conventions.Add(new RouteTokenTransformerConvention(new SlugifyParameterTransformer()));
@@ -67,6 +74,7 @@ namespace InternetId.Server
             }
             else
             {
+                app.UseForwardedHeaders();
                 app.UseStatusCodePagesWithReExecute("/error");
                 //app.UseExceptionHandler("/error");
             }
