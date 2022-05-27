@@ -14,6 +14,8 @@ using Npgsql;
 using Serilog;
 using Serilog.Events;
 using System;
+using System.Linq;
+using System.Net;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -34,6 +36,17 @@ namespace InternetId.Server
         public void ConfigureServices(IServiceCollection services)
         {
             services.Configure<ForwardedHeadersOptions>(Configuration.GetSection("ForwardedHeaders"));
+            services.Configure<ForwardedHeadersOptions>(binderOptions =>
+            {
+                if (Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>() is string[] knownProxies)
+                {
+                    foreach (var item in knownProxies)
+                    {
+                        if (IPAddress.TryParse(item, out var address))
+                            binderOptions.KnownProxies!.Add(address!);
+                    }
+                }
+            });
 
             services.AddControllersWithViews(options =>
             {
@@ -64,9 +77,8 @@ namespace InternetId.Server
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            var forwardedHeaderOptions = app.ApplicationServices.GetRequiredService<IOptions<ForwardedHeadersOptions>>();
-
             app.UseForwardedHeaders();
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
