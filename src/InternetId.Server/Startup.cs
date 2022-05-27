@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Npgsql;
 using Serilog;
 using Serilog.Events;
@@ -32,11 +33,7 @@ namespace InternetId.Server
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.Configure<ForwardedHeadersOptions>(options =>
-            {
-                options.ForwardedHeaders = ForwardedHeaders.All;
-                options.ForwardLimit = 1;
-            });
+            services.Configure<ForwardedHeadersOptions>(Configuration.GetSection("ForwardedHeaders"));
 
             services.AddControllersWithViews(options =>
             {
@@ -67,6 +64,9 @@ namespace InternetId.Server
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            var forwardedHeaderOptions = app.ApplicationServices.GetRequiredService<IOptions<ForwardedHeadersOptions>>();
+
+            app.UseForwardedHeaders();
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -74,7 +74,6 @@ namespace InternetId.Server
             }
             else
             {
-                app.UseForwardedHeaders();
                 app.UseStatusCodePagesWithReExecute("/error");
                 //app.UseExceptionHandler("/error");
             }
