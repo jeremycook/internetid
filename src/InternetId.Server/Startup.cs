@@ -77,6 +77,16 @@ namespace InternetId.Server
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            if (Configuration.GetSection("ForceHttps").Get<bool>() == true)
+            {
+                const string https = "https";
+                app.Use((context, next) =>
+                {
+                    context.Request.Scheme = https;
+                    return next(context);
+                });
+            }
+
             app.UseForwardedHeaders();
 
             if (env.IsDevelopment())
