@@ -1,24 +1,13 @@
-using InternetId.Common.Config;
 using InternetId.Npgsql;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Npgsql;
 using Serilog;
-using Serilog.Events;
-using System;
-using System.Linq;
 using System.Net;
-using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
 
 namespace InternetId.Server
 {
@@ -28,25 +17,30 @@ namespace InternetId.Server
         {
             Configuration = configuration;
             HostEnvironment = environment;
+            ForwardedHeaders = Configuration.GetSection("ForwardedHeaders");
         }
 
         public IConfiguration Configuration { get; }
         public IWebHostEnvironment HostEnvironment { get; }
+        public IConfigurationSection ForwardedHeaders { get; }
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.Configure<ForwardedHeadersOptions>(Configuration.GetSection("ForwardedHeaders"));
-            services.Configure<ForwardedHeadersOptions>(binderOptions =>
+            if (ForwardedHeaders.Exists())
             {
-                if (Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>() is string[] knownProxies)
+                services.Configure<ForwardedHeadersOptions>(ForwardedHeaders);
+                services.Configure<ForwardedHeadersOptions>(binderOptions =>
                 {
-                    foreach (var item in knownProxies)
+                    if (ForwardedHeaders.GetSection("KnownProxies").Get<string[]>() is string[] knownProxies)
                     {
-                        if (IPAddress.TryParse(item, out var address))
-                            binderOptions.KnownProxies!.Add(address!);
+                        foreach (var item in knownProxies)
+                        {
+                            if (IPAddress.TryParse(item, out var address))
+                                binderOptions.KnownProxies!.Add(address!);
+                        }
                     }
-                }
-            });
+                });
+            }
 
             services.AddControllersWithViews(options =>
             {
@@ -77,6 +71,11 @@ namespace InternetId.Server
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            if (ForwardedHeaders.Exists())
+            {
+                app.UseForwardedHeaders();
+            }
+
             if (Configuration.GetSection("ForceHttps").Get<bool>() == true)
             {
                 const string https = "https";
@@ -86,8 +85,6 @@ namespace InternetId.Server
                     return next(context);
                 });
             }
-
-            app.UseForwardedHeaders();
 
             if (env.IsDevelopment())
             {
