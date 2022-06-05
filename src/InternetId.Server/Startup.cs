@@ -1,11 +1,14 @@
 using InternetId.Npgsql;
+using InternetId.Server.Asp;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Npgsql;
 using Serilog;
 using System.Net;
 
@@ -50,6 +53,9 @@ namespace InternetId.Server
             {
                 options.Conventions.Add(new PageRouteTransformerConvention(new SlugifyParameterTransformer()));
             });
+
+            services.AddDbContext<AspDbContext>(options => options.UseSnakeCaseNamingConvention().UseNpgsql(NpgsqlConnectionBuilder.Build(Configuration, "Asp")));
+            services.AddDataProtection().PersistKeysToDbContext<AspDbContext>();
 
             services.AddInternetId(Configuration.GetSection("InternetId"));
             services.AddInternetIdHasher();
