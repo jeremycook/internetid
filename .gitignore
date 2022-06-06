@@ -350,3 +350,5 @@ MigrationBackup/
 
 # Custom
 src/InternetId.Server/App_Data/
+.ignore/
+
