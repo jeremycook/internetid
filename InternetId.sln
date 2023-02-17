@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.31005.135
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33213.308
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{E4CDA50A-7DDC-413A-BA9A-69973E390F6D}"
 	ProjectSection(SolutionItems) = preProject
@@ -29,6 +29,13 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InternetId.Tests", "src\InternetId.Tests\InternetId.Tests.csproj", "{59ED85CF-26B1-436B-B9B2-D2B391CFA22B}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InternetId.DatabaseConfiguration", "src\InternetId.DatabaseConfiguration\InternetId.DatabaseConfiguration.csproj", "{81D887B2-BB56-40A7-9750-A371374EE9F7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{5A07D350-736D-43D0-91B2-E65382C9E5B6}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		LICENSE.md = LICENSE.md
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
